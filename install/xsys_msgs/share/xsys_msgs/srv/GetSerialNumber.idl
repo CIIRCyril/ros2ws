@@ -1,0 +1,18 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from xsys_msgs/srv/GetSerialNumber.srv
+// generated code does not contain a copyright notice
+
+
+module xsys_msgs {
+  module srv {
+    module GetSerialNumber_Request_Constants {
+      const string SERVICE_NAME = "/xsys/get_serial_number";
+    };
+    struct GetSerialNumber_Request {
+      uint8 structure_needs_at_least_one_member;
+    };
+    struct GetSerialNumber_Response {
+      string serial_number;
+    };
+  };
+};

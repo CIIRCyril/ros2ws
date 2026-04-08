@@ -1,0 +1,39 @@
+// generated from rosidl_adapter/resource/action.idl.em
+// with input from hric_msgs/action/NavThroughPoses.action
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/PoseStamped.idl"
+
+module hric_msgs {
+  module action {
+    struct NavThroughPoses_Goal {
+      @verbatim (language="comment", text=
+        "goal definition")
+      sequence<geometry_msgs::msg::PoseStamped> poses;
+    };
+    module NavThroughPoses_Result_Constants {
+      @verbatim (language="comment", text=
+        "Error codes")
+      const uint32 NONE = 0;
+      @verbatim (language="comment", text=
+        "目标点被占用")
+      const uint32 GOAL_OCCUPIED = 101;
+      @verbatim (language="comment", text=
+        "规划超时")
+      const uint32 TIMEOUT = 102;
+      @verbatim (language="comment", text=
+        "无可通行路线")
+      const uint32 NO_VALID_PATH = 103;
+    };
+    @verbatim (language="comment", text=
+      "result definition")
+    struct NavThroughPoses_Result {
+      uint32 error_code;
+    };
+    @verbatim (language="comment", text=
+      "feedback definition")
+    struct NavThroughPoses_Feedback {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

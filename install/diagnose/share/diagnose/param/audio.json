@@ -1,0 +1,54 @@
+{
+  "config": {
+    "audio_player": "192.168.41.2",
+    "audio_path": "/home/nvidia/data/speech",
+    "audio_list": [ "0.mp3", "1.mp3", "2.mp3", "3.mp3", "4.mp3" ]
+  },
+  "topic":[
+    {
+      "name": "/sbus_data",
+      "msgtype": "sensor_msgs::Joy"
+    }
+  ],
+  "proc": [
+  ],
+  "trigger": [
+     {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "G",
+      "value": [ "", "-1" ],
+      "action": [
+        { "play_audio_index": "-1" }
+      ]
+    },
+    {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "G",
+      "value": [ "", "0" ],
+      "action": [
+        { "stop_play_audio": "true" }
+      ]
+    },
+    {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "F",
+      "value": [ "", "-1" ],
+      "action": [
+        { "change_audio_index": "next" }
+      ]
+    },
+    {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "F",
+      "value": [ "", "1" ],
+      "action": [
+        { "change_audio_index": "previous" }
+      ]
+    }
+  ]
+}
+

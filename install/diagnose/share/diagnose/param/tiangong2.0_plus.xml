@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+<Data>
+  <robot name="天工" date="0000-00-00" desp="robot" type="TG2.0-Plus"></robot>
+
+  <topic name="/arm/status" msgtype="bodyctrl_msgs::MotorStatusMsg" enable="1" simulated="0" />
+  <topic name="/leg/status" msgtype="bodyctrl_msgs::MotorStatusMsg" enable="1" simulated="0" />
+  <topic name="/waist/status" msgtype="bodyctrl_msgs::MotorStatusMsg" enable="1" simulated="0" />
+  <topic name="/head/status" msgtype="bodyctrl_msgs::MotorStatusMsg" enable="1" simulated="0" />
+  <topic name="/inspire_hand/state/left" msgtype="sensor_msgs::JointState" enable="1" simulated="0" />
+  <topic name="/inspire_hand/state/right" msgtype="sensor_msgs::JointState" enable="1" simulated="0" />
+  <topic name="/arm_6dof_left" msgtype="sensor_msgs::JointState" enable="1" simulated="0" />
+  <topic name="/arm_6dof_right" msgtype="sensor_msgs::JointState" enable="1" simulated="0" />
+  <topic name="/imu/status" msgtype="bodyctrl_msgs::Imu" enable="1" simulated="0" />
+  <topic name="/sbus_data" msgtype="sensor_msgs::Joy" enable="1" simulated="0" />
+  <topic name="/power/board/key_status" msgtype="bodyctrl_msgs::PowerBoardKeyStatus" enable="1" simulated="0" />
+  <topic name="/power/board/status" msgtype="bodyctrl_msgs::PowerStatus" enable="1" simulated="0" />
+  <topic name="/imu/offset_notify" msgtype="std_msgs::String" enable="1" pub="1" simulated="0" />
+  <topic name="/audio/config/notify" msgtype="std_msgs::String" enable="1" pub="1" simulated="0" />
+  <topic name="/proc_manager/config/notify" msgtype="std_msgs::String" enable="1" pub="1" simulated="0" />
+
+  <service name="/diagnose/version/upgrade" msgtype="bodyctrl_msgs::srv::VersionUpgrade" enable="1" simulated="0" server="true" type="diagnose_service"/>
+  <service name="/ota/version/upgrade" msgtype="bodyctrl_msgs::srv::VersionUpgrade" enable="1" simulated="0" server="false" type="ota_service"/>
+  <service name="/proc_manager/version/upgrade" msgtype="bodyctrl_msgs::srv::VersionUpgrade" enable="1" simulated="0" server="false" type="proc_service"/>
+  <device id="202" name="audio_dev" type="audio" remote="1" ip="192.168.41.2" desp="orin audio" user="nvidia" pwd="nvidia"/>
+
+  <speech name="sbus_speech" type="sbus" remote="1" ip="192.168.41.2" desp="sbus speech" user="nvidia" pwd="nvidia" path="/home/nvidia/data/speech/sbus" deletable="1" />
+  <speech name="builtin_speech" type="builtin" remote="1" ip="192.168.41.2" desp="builtin speech" user="nvidia" pwd="nvidia" path="/home/nvidia/data/speech/builtin" deletable="0" />
+
+  <action id="1" type="手臂" name="CMD_ACTION_WAVE_HAND" desp="挥手"/>
+  <action id="2" type="手臂" name="CMD_ACTION_HAND_SHAKE" desp="握手"/>
+  <action id="3" type="复合动作" name="CMD_ACTION_BOW" desp="鞠躬"/>
+  <action id="4" type="舞蹈" name="CMD_ACTION_DANCE_1" desp="跳舞1"/>
+  <action id="5" type="舞蹈" name="CMD_ACTION_DANCE_2" desp="跳舞2"/>
+
+  <mode id="1" type="motion" name="rl_control" desp="强化学习"/>
+  <mode id="2" type="motion" name="motion_control" desp="传统算法"/>
+
+  <device id="21" name="motor16" type="motor" desp="左肩关节俯仰" topic="/arm/status"  index="0" canid="11"/>
+  <device id="22" name="motor18" type="motor" desp="左肩关节侧展" topic="/arm/status"  index="0" canid="12"/>
+  <device id="23" name="motor17" type="motor" desp="左肩关节周转" topic="/arm/status"  index="0" canid="13"/>
+  <device id="24" name="motor24" type="motor" desp="左肘关节侧展" topic="/arm/status"  index="0" canid="14"/>
+
+  <device id="11" name="motor16" type="motor" desp="右肩关节俯仰" topic="/arm/status"  index="0" canid="21"/>
+  <device id="12" name="motor18" type="motor" desp="右肩关节侧展" topic="/arm/status"  index="0" canid="22"/>
+  <device id="13" name="motor17" type="motor" desp="右肩关节周转" topic="/arm/status"  index="0" canid="23"/>
+  <device id="14" name="motor24" type="motor" desp="右肘关节侧展" topic="/arm/status"  index="0" canid="24"/>
+
+  <device id="51" name="motor18" type="motor" desp="左髋关节侧展" topic="/leg/status"  index="0" canid="51"/>
+  <device id="52" name="motor17" type="motor" desp="左髋关节周转" topic="/leg/status"  index="0" canid="52"/>
+  <device id="53" name="motor16" type="motor" desp="左髋关节俯仰" topic="/leg/status"  index="0" canid="53"/>
+  <device id="54" name="motor24" type="motor" desp="左膝关节俯仰" topic="/leg/status"  index="0" canid="54"/>
+  <device id="55" name="motor7" type="motor" desp="左踝关节俯仰" topic="/leg/status"  index="0" canid="55"/>
+  <device id="56" name="motor8" type="motor" desp="左踝关节周转" topic="/leg/status"  index="0" canid="56"/>
+
+  <device id="61" name="motor18" type="motor" desp="右髋关节侧展" topic="/leg/status"  index="0" canid="61"/>
+  <device id="62" name="motor17" type="motor" desp="右髋关节周转" topic="/leg/status"  index="0" canid="62"/>
+  <device id="63" name="motor16" type="motor" desp="右髋关节俯仰" topic="/leg/status"  index="0" canid="63"/>
+  <device id="64" name="motor24" type="motor" desp="右膝关节俯仰" topic="/leg/status"  index="0" canid="64"/>
+  <device id="65" name="motor7" type="motor" desp="右踝关节俯仰" topic="/leg/status"  index="0" canid="65"/>
+  <device id="66" name="motor8" type="motor" desp="右踝关节周转" topic="/leg/status"  index="0" canid="66"/>
+
+  <device id="31" name="motor31" type="motor" desp="腰部关节" topic="/waist/status"  index="0" canid="31"/>
+
+  <device id="71" name="imu" type="imu" desp="imu" topic="/imu/status" />
+
+  <device id="101" name="power_board" type="power" desp="power status">
+    <topic name="/power/board/status" />
+    <topic name="/power/board/key_status" />
+  </device>
+  <device id="102" name="switch" type="switch" desp="switch">
+    <topic name="/power/board/key_status" />
+  </device>
+
+  <device id="103" name="version" type="version" remote="0" ip="192.168.41.1" desp="整机版本" user="ubuntu" pwd="123" />
+  <device id="104" name="x86"   type="system" remote="0" ip="192.168.41.1" desp="x86 system" user="ubuntu" pwd="123" />
+
+  <device id="110" name="battery" type="battery" desp="48V" topic="/power/board/status" />
+  <device id="111" name="remote_control" type="remote_control" desp="遥控器" topic="/sbus_data" />
+
+  <device id="201" name="upgrade all" type="upgrade" desp="upgrade control">
+    <service name="/diagnose/version/upgrade" />
+    <service name="/ota/version/upgrade" />
+    <service name="/proc_manager/version/upgrade" />
+  </device>
+
+  <config key="status_update_interval" val="1000"></config>
+  <config key="web_dir" val="web/dist"></config>
+  <config key="log_level" val="1"></config>
+  <config key="version_upgrade_wait_estop_pressed_timeout" val="120"></config>
+  <config key="version_upgrade_wait_estop_release_timeout" val="120"></config>
+  <config key="version_upgrade_upload_file_interval" val="10"></config>
+
+  <config key="enable_auto_update_topic" val="1"></config>
+  <config key="enable_auto_update_alarm" val="1"></config>
+  <config key="enable_auto_update_battery" val="1"></config>
+  <config key="enable_auto_update_chassis" val="0"></config>
+  <config key="enable_auto_update_imu" val="1"></config>
+  <config key="enable_auto_update_motor" val="1"></config>
+  <config key="enable_auto_update_power" val="1"></config>
+  <config key="enable_auto_update_radar" val="1"></config>
+  <config key="enable_auto_update_switch" val="1"></config>
+  <config key="enable_auto_update_remote_control" val="1"></config>
+  <config key="enable_auto_update_audio" val="1"></config>
+  <config key="enable_auto_update_system" val="1"></config>
+  <config key="enable_auto_update_topic" val="1"></config>
+  <config key="enable_auto_update_version" val="1"></config>
+
+  <config key="enable_upgrade_check_proc_manager" val="0"></config>
+  <config key="enable_upgrade_check_ota_service" val="0"></config>
+  <config key="enable_upgrade_check_powerboard" val="1"></config>
+  <config key="enable_upgrade_check_estop_status" val="1"></config>
+  <config key="enable_upgrade_wait_status_ok" val="1"></config>
+
+  <param dev="x86" file="/home/ubuntu/data/param/imu_info.txt" topic="/imu/offset_notify" enable="0" />
+  <param dev="x86" file="/home/ubuntu/data/param/rl_control_new.txt" topic="/motion/offset_notify" enable="0" />
+  <param dev="x86" file="/home/ubuntu/data/param/audio_config.txt" topic="/audio/config/notify" enable="1">
+    <item key="audio_player" type="string" enable="0" />
+    <item key="audio_path"   type="string" enable="0" />
+    <item key="audio_list"   type="string" enable="1" />
+  </param>
+  <param dev="x86" file="/home/ubuntu/data/param/proc_manager.txt" topic="/proc_manager/config/notify" enable="1">
+    <item key="motion_type" type="string" enable="1" values="rl_control,motion_control"/>
+  </param>
+</Data>

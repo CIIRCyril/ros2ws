@@ -1,0 +1,58 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from hric_msgs/srv/Relocate.srv
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/PoseStamped.idl"
+
+module hric_msgs {
+  module srv {
+    module Relocate_Request_Constants {
+      @verbatim (language="comment", text=
+        "局部重定位位姿(需要提供pose_robot)")
+      const uint8 LOCAL_MATCH = 1;
+      @verbatim (language="comment", text=
+        "全局重定位位姿(不需要提供pose_robot，定位算法进行自动匹配)")
+      const uint8 GLOBAL_MATCH = 2;
+    };
+    @verbatim (language="comment", text=
+      "匹配类型")
+    struct Relocate_Request {
+      @verbatim (language="comment", text=
+        "goal definition" "\n"
+        "机器人位姿")
+      geometry_msgs::msg::PoseStamped pose_robot;
+
+      @verbatim (language="comment", text=
+        "匹配类型")
+      uint8 match_type;
+    };
+    module Relocate_Response_Constants {
+      @verbatim (language="comment", text=
+        "错误码")
+      const uint32 NONE = 0;
+      const uint32 UNKNOWN = 200;
+      @verbatim (language="comment", text=
+        "TF错误")
+      const uint32 TF_ERROR = 201;
+      @verbatim (language="comment", text=
+        "传感器异常")
+      const uint32 SENSOR_ERROR = 202;
+      @verbatim (language="comment", text=
+        "低置信度")
+      const uint32 LOW_CONFIDENCE = 203;
+    };
+    struct Relocate_Response {
+      @verbatim (language="comment", text=
+        "结果")
+      boolean success;
+
+      @verbatim (language="comment", text=
+        "错误码")
+      uint32 error_code;
+
+      @verbatim (language="comment", text=
+        "失败原因")
+      string message;
+    };
+  };
+};

@@ -1,0 +1,50 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from hric_msgs/msg/NavStatus.msg
+// generated code does not contain a copyright notice
+
+
+module hric_msgs {
+  module msg {
+    module NavStatus_Constants {
+      @verbatim (language="comment", text=
+        "无异常")
+      const uint32 NONE = 0;
+      const uint32 UNKNOWN = 100;
+      @verbatim (language="comment", text=
+        "目标点被占用")
+      const uint32 GOAL_OCCUPIED = 101;
+      @verbatim (language="comment", text=
+        "规划超时")
+      const uint32 TIMEOUT = 102;
+      @verbatim (language="comment", text=
+        "无可通行路线")
+      const uint32 NO_VALID_PATH = 103;
+      @verbatim (language="comment", text=
+        "导航状态码" "\n"        " 空闲状态")
+      const uint8 IDLE = 0;
+      @verbatim (language="comment", text=
+        "执行导航任务，去往目标点")
+      const uint8 EXECUTE_TASK = 1;
+      @verbatim (language="comment", text=
+        "导航任务被取消")
+      const uint8 CANCELED = 2;
+      @verbatim (language="comment", text=
+        "导航任务失败")
+      const uint8 FAILED = 3;
+      @verbatim (language="comment", text=
+        "已到达目标位置，导航任务完成")
+      const uint8 REACHED_GOAL = 4;
+    };
+    @verbatim (language="comment", text=
+      "导航错误码")
+    struct NavStatus {
+      @verbatim (language="comment", text=
+        "导航状态")
+      uint8 status;
+
+      @verbatim (language="comment", text=
+        "错误码")
+      uint32 error_code;
+    };
+  };
+};

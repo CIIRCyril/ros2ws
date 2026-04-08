@@ -1,0 +1,4 @@
+# This file is used to set the parameters of the motion_control
+
+# The following parameters can be set:
+intra_process_comms: true   #使用进程内通信？

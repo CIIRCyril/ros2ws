@@ -1,0 +1,49 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from monitor_msgs/msg/SysMemData.msg
+// generated code does not contain a copyright notice
+
+#include "builtin_interfaces/msg/Time.idl"
+
+module monitor_msgs {
+  module msg {
+    struct SysMemData {
+      builtin_interfaces::msg::Time timestamp;
+
+      @verbatim (language="comment", text=
+        "系统总物理内存")
+      uint64 total;
+
+      @verbatim (language="comment", text=
+        "系统总物理使用内存")
+      uint64 used;
+
+      @verbatim (language="comment", text=
+        "完全空闲的物理内存（未被任何进程/缓存使用）")
+      uint64 free;
+
+      uint64 shared;
+
+      @verbatim (language="comment", text=
+        "实际可被新进程使用的内存（含可回收缓存）")
+      uint64 available;
+
+      @verbatim (language="comment", text=
+        "用于块设备（如磁盘）的临时缓存")
+      uint64 buffers;
+
+      @verbatim (language="comment", text=
+        "用于文件系统的页缓存（可回收）")
+      uint64 cached;
+
+      uint64 sreclaimable;
+
+      @verbatim (language="comment", text=
+        "交换分区总大小")
+      uint64 swap_total;
+
+      @verbatim (language="comment", text=
+        "空闲交换分区大小")
+      uint64 swap_free;
+    };
+  };
+};

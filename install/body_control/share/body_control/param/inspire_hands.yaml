@@ -1,0 +1,8 @@
+# name, canIds[], slaveId, channel, passages[], type, mode, rateWork, rateReq, offset
+#  -- mode: 1 - 轮廓速度模式, 11 - 目标位置匀速规划模式
+left_hand_installed: true
+right_hand_installed: true
+
+inspire_hands:
+  - [1,  [1],  0, 1, [1], 2, 11, 100, 500, 0]
+  - [2,  [2],  0, 1, [1], 2, 11, 100, 500, 0]

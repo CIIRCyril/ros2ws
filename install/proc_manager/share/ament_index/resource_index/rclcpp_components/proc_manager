@@ -1,0 +1,2 @@
+com::xhumanoid::ProcManagerNodelet;lib/libproc_manager.so
+com::xhumanoid::ProcManagerTest;lib/libproc_manager.so

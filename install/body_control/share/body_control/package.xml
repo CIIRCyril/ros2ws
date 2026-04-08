@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>body_control</name>
+  <version>0.0.0</version>
+  <description>The body_control package</description>
+
+  <maintainer email="ethan.ji@todo.todo">max</maintainer>
+
+  <license>TODO</license>
+
+  <!-- Dependencies for building and running -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_package</buildtool_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <depend>bodyctrl_msgs</depend>
+  <depend>rclcpp_components</depend>
+  <depend>rclcpp</depend>
+  <depend>rclpy</depend>
+
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+  
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

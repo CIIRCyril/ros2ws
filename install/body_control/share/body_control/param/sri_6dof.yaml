@@ -1,0 +1,4 @@
+# name, canIds[], slaveId, channel, passages[], type, mode, rateWork, rateReq, offset
+sri_6dof:
+  - [14, [11, 12, 13], 1, 1, [11, 12, 13], 0, 0, 500, 500, 0]  # 左侧六维力
+  - [24, [21, 22, 23], 0, 1, [21, 22, 23], 0, 0, 500, 500, 0]  # 左侧六维力

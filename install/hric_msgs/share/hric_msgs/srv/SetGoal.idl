@@ -1,0 +1,45 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from hric_msgs/srv/SetGoal.srv
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/PoseStamped.idl"
+
+module hric_msgs {
+  module srv {
+    module SetGoal_Request_Constants {
+      @verbatim (language="comment", text=
+        "无异常")
+      const uint32 NONE = 0;
+      const uint32 UNKNOWN = 100;
+      @verbatim (language="comment", text=
+        "目标点被占用")
+      const uint32 GOAL_OCCUPIED = 101;
+      @verbatim (language="comment", text=
+        "规划超时")
+      const uint32 TIMEOUT = 102;
+      @verbatim (language="comment", text=
+        "无可通行路线")
+      const uint32 NO_VALID_PATH = 103;
+    };
+    @verbatim (language="comment", text=
+      "导航错误码")
+    struct SetGoal_Request {
+      @verbatim (language="comment", text=
+        "目标位姿。header中frame_id用于区分目标位姿是全局位姿还是局部位姿。若frame_id为\"map\"为全局目标位姿，为\"base_link\"为相对机器人的目标位姿。")
+      geometry_msgs::msg::PoseStamped goal;
+    };
+    struct SetGoal_Response {
+      @verbatim (language="comment", text=
+        "表示服务调用是否成功")
+      boolean success;
+
+      @verbatim (language="comment", text=
+        "失败原因")
+      string message;
+
+      @verbatim (language="comment", text=
+        "错误码")
+      uint32 error_code;
+    };
+  };
+};

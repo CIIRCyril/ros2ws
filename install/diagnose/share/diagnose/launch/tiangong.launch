@@ -1,0 +1,73 @@
+<launch>
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager"  args="manager" output="screen"/>
+
+  <node pkg="nodelet" type="nodelet" name="BodyControl" args="load body_control/Usb2Can nodelet_manager">
+      <rosparam command="load" file="$(find body_control)/param/motor_head.yaml" />
+      <rosparam command="load" file="$(find body_control)/param/motor_waist_legs.yaml" />
+      <rosparam command="load" file="$(find body_control)/param/motor_arms.yaml" />
+      <rosparam command="load" file="$(find body_control)/param/powerboard.yaml" />
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="Monitor" args="load body_control/MonitorPlugin nodelet_manager" output="screen">
+  </node>
+
+  <arg name="left_chain_start" default="left_base_link" />
+  <arg name="left_chain_end" default="left_Link7" />
+  <arg name="right_chain_start" default="right_base_link" />
+  <arg name="right_chain_end" default="right_Link7" />
+  <arg name="dt" default="0.005" />
+  <!-- <param name="robot_description" textfile="$(find aearm_description)/urdf/aearm.urdf" /> -->
+
+  <node name="arm_traj_test_left" pkg="aearm_traj_test" type="arm_traj_test" output="screen">
+    <param name="left_chain_start" type="string" value="$(arg left_chain_start)"/>
+    <param name="left_chain_end" type="string" value="$(arg left_chain_end)"/>
+    <param name="right_chain_start" type="string" value="$(arg right_chain_start)"/>
+    <param name="right_chain_end" type="string" value="$(arg right_chain_end)"/>
+    <param name="dt" type="double" value="$(arg dt)"/>
+    <!-- <param name="urdf_param" type="string" value="/robot_description"/> -->
+  </node>
+
+  <node name="arm_traj_test_right" pkg="aearm_traj_test" type="arm_traj_test" output="screen">
+    <param name="left_chain_start" type="string" value="$(arg left_chain_start)"/>
+    <param name="left_chain_end" type="string" value="$(arg left_chain_end)"/>
+    <param name="right_chain_start" type="string" value="$(arg right_chain_start)"/>
+    <param name="right_chain_end" type="string" value="$(arg right_chain_end)"/>
+    <param name="dt" type="double" value="$(arg dt)"/>
+    <!-- <param name="urdf_param" type="string" value="/robot_description"/> -->
+  </node>
+    <node name="head_traj_test" pkg="aearm_traj_test" type="head_traj_test" output="screen">
+    <param name="left_chain_start" type="string" value="$(arg left_chain_start)"/>
+    <param name="left_chain_end" type="string" value="$(arg left_chain_end)"/>
+    <param name="right_chain_start" type="string" value="$(arg right_chain_start)"/>
+    <param name="right_chain_end" type="string" value="$(arg right_chain_end)"/>
+    <param name="dt" type="double" value="$(arg dt)"/>
+  </node>
+    <node name="waist_traj_test" pkg="aearm_traj_test" type="waist_traj_test" output="screen">
+    <param name="left_chain_start" type="string" value="$(arg left_chain_start)"/>
+    <param name="left_chain_end" type="string" value="$(arg left_chain_end)"/>
+    <param name="right_chain_start" type="string" value="$(arg right_chain_start)"/>
+    <param name="right_chain_end" type="string" value="$(arg right_chain_end)"/>
+    <param name="dt" type="double" value="$(arg dt)"/>
+  </node>
+    <node name="leg_traj_test" pkg="aearm_traj_test" type="leg_traj_test" output="screen">
+    <param name="left_chain_start" type="string" value="$(arg left_chain_start)"/>
+    <param name="left_chain_end" type="string" value="$(arg left_chain_end)"/>
+    <param name="right_chain_start" type="string" value="$(arg right_chain_start)"/>
+    <param name="right_chain_end" type="string" value="$(arg right_chain_end)"/>
+    <param name="dt" type="double" value="$(arg dt)"/>
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager2"  args="manager" output="screen"/>
+  <node pkg="nodelet" type="nodelet" name="TestPubNodelet" args="load human_arm_ae_testPub/TestPubNodelet nodelet_manager2" output="screen">
+  </node>
+
+  <node pkg="usb_sbus" type="usb_sbus_node" name="usb_sbus_node" output="screen" />
+  <node pkg="android_socket" type="android_socket_node" name="android_socket_node" output="screen" />
+
+  <param name="xml_config_file" type="string" value="$(find diagnose)/param/tiangong.xml" />
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager3"  args="manager" output="screen"/>
+  <node pkg="nodelet" type="nodelet" name="DebuggerNodelet" args="load debugger/DebuggerNodelet nodelet_manager3" output="screen">
+  </node>
+
+</launch>
+

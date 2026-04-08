@@ -1,0 +1,14 @@
+[Unit]
+Description=sbus_audio
+[Service]
+User=root
+
+ExecStart=/bin/bash /home/ubuntu/robin/install/audio/scripts/init.sh
+ExecStop=/bin/bash  /home/ubuntu/robin/install/audio/scripts/deinit.sh
+Restart=always
+Type=simple
+RestartSec=5
+StartLimitInterval=0
+
+[Install]
+WantedBy = multi-user.target

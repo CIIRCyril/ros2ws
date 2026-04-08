@@ -1,0 +1,9 @@
+# name, canIds[], slaveId, channel, passages[], type, mode, rateWork, rateReq, offset
+#  -- control_mode: 
+#       PV = 1,    // 轮廓速度模式，上报位置、速度和错误
+#       UPP = 11,   // 目标位置匀速规划模式（Uniform speed Planning mode for target Position），上报位置和错误
+#          11 - 自研谐波40, 12 - 自研谐波55, 13 - 自研谐波70, 14 - 自研谐波80
+#          15 - 自研行星55P, 16 - 自研行星100, 17 - 自研行星125, 18 - 自研行星150
+
+motor_waist:
+  - [31, [31], 1, 0, [1], 14, 0, 400, 400, 0]  # 从这里开始是腰部电机的配置

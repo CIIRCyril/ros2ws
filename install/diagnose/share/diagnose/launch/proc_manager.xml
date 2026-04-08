@@ -1,0 +1,7 @@
+<launch>
+  <node_container pkg="rclcpp_components" exec="component_container" name="proc_manager_container" namespace="">
+    <composable_node pkg="diagnose" plugin="debugger::ProcManagerNodelet" name="proc_manager_node" namespace="">
+      <param name="json_config_file" value="param/proc_manager.json" />
+    </composable_node>
+  </node_container>
+</launch>

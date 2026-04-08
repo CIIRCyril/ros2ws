@@ -1,0 +1,7 @@
+<launch>
+  <node_container pkg="rclcpp_components" exec="component_container" name="bluetooth_container" namespace="">
+    <composable_node pkg="diagnose" plugin="debugger::BluetoothNodelet" name="bluetooth_node" namespace="">
+      <param name="bt_log_level" value="error" />
+    </composable_node>
+  </node_container>
+</launch>

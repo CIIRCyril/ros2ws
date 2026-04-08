@@ -1,0 +1,626 @@
+syntax = "proto2";
+
+package com.xhumanoid;
+
+enum Command {
+    CMD_NONE                  = 0;
+    CMD_SET_PARAMETER         = 1;
+
+    CMD_GET_DATA_LIST         = 11;
+    CMD_GET_HISTORY_DATA      = 12;
+    CMD_GET_STATUS_DATA       = 13;
+    CMD_GET_LOG_DATA          = 14;
+    CMD_GET_TOPIC_DATA        = 15;
+    CMD_SET_TOPIC_DATA        = 16;
+    CMD_SET_CONFIG_DATA       = 17;
+
+    CMD_RUN_STATUS            = 41;
+    CMD_RUN_ACTION            = 42;
+    CMD_RUN_DIAGNOSIS         = 43;
+    CMD_RUN_VERSION_UPDATE    = 44;
+    CMD_RUN_CALL_SERVICE      = 45;
+    CMD_RUN_LOG_EXTRACT       = 46;
+    CMD_RUN_UPLOAD_FILE       = 47;
+    CMD_RUN_CHANGE_MODE       = 48;
+    CMD_RUN_DEVICE_CONTROL    = 49;
+
+    CMD_CLEAR_ALARM           = 51;
+    CMD_CONNECT_WIFI          = 52;
+
+    CMD_UPDATE_STATUS_DATA    = 61;
+    CMD_UPDATE_STATUS_UPGRAGE = 62;
+    CMD_UPDATE_STATUS_LOG     = 63;
+}
+
+enum ErrorCode {
+    ERROR_CODE_SUCCESS               = 0;
+    ERROR_CODE_ACTION_NOT_IMPLEMENT  = 1;
+    ERROR_CODE_ACTION_TIMEOUT        = 2;
+    ERROR_CODE_SERVER_STOPPED        = 3;
+    ERROR_CODE_COMMAND_NOT_IMPLEMENT = 4;
+    ERROR_CODE_COMMAND_RUN_FAILED    = 5;
+    ERROR_CODE_PARAM_INVALID         = 6;
+    ERROR_CODE_VERSION_UPDATE_ERROR  = 7;
+    ERROR_CODE_LOG_EXTRACT_ERROR     = 8;
+    ERROR_CODE_DEVICE_CONTROL_ERROR  = 9;
+    ERROR_CODE_CHANGE_MODE_ERROR     = 10;
+    ERROR_CODE_UPLOAD_FILE_ERROR     = 11;
+    ERROR_CODE_SERVER_INTERNAL_ERROR = 99;
+}
+
+enum AlarmCode {
+    ALARM_CODE_NONE           = 0;
+}
+
+enum ActionType {
+    ACT_NONE                  = 0;
+
+    ACT_ARM_WAVE_LEFT         = 1;
+    ACT_ARM_WAVE_RIGHT        = 2;
+    ACT_ARM_TOWARD_LEFT       = 3;
+    ACT_ARM_TOWARD_RIGHT      = 4;
+    ACT_ARM_HANDSHAKE_LEFT    = 5;
+    ACT_ARM_HANDSHAKE_RIGHT   = 6;
+    ACT_ARM_BEND_LEFT         = 7;
+    ACT_ARM_BEND_RIGHT        = 8;
+    ACT_ARM_EXTEND_LEFT       = 9;
+    ACT_ARM_EXTEND_RIGHT      = 10;
+    ACT_ARM_SPEECH_LEFT       = 11;
+    ACT_ARM_SPEECH_RIGHT      = 12;
+    ACT_ARM_RETURN_ZERO_LEFT  = 13;
+    ACT_ARM_RETURN_ZERO_RIGHT = 14;
+    ACT_ARM_SALUTE_LEFT       = 15;
+    ACT_ARM_SALUTE_RIGHT      = 16;
+
+    ACT_COMPOSITE_MUSIC       = 31;
+    ACT_COMPOSITE_THINK       = 32;
+    ACT_COMPOSITE_DANCE       = 33;
+
+    ACT_LEG_STAND             = 41;
+    ACT_LEG_RETURN_ZERO       = 42;
+    ACT_LEG_FRONT_BACK        = 43;
+    ACT_LEG_UP                = 44;
+    ACT_LEG_DOWN              = 45;
+    ACT_LEG_STOP              = 46;
+
+
+    ACT_WAIST_ROTATE_ZERO     = 51;
+    ACT_WAIST_ROTATE_LEFT     = 52;
+    ACT_WAIST_ROTATE_RIGHT    = 53;
+
+    ACT_HEAD_SHAKE            = 61;
+    ACT_HEAD_NOD              = 62;
+    ACT_HEAD_RETURN_ZERO      = 63;
+    ACT_HEAD_UP               = 64;
+    ACT_HEAD_DOWN             = 65;
+    ACT_HEAD_STOP             = 66;
+    ACT_HEAD_TURN_LEFT        = 67;
+    ACT_HEAD_TURN_RIGHT       = 68;
+    ACT_HEAD_TILT_LEFT        = 69;
+    ACT_HEAD_TILT_RIGHT       = 70;
+
+
+    ACT_TEXT_SPEECH           = 71;
+    ACT_HEAD_SET_ANGLE        = 81;
+
+    ACT_MOVE_FORWARD          = 101;
+    ACT_MOVE_BACKWARD         = 102;
+    ACT_TURN_LEFT             = 103;
+    ACT_TURN_RIGHT            = 104;
+    ACT_SET_VELOCITY          = 105;
+    ACT_SET_MAX_SPEED         = 111;
+
+    ACT_LOAD_TEST             = 121;
+    ACT_STOP_MOVEMENT         = 131;
+}
+
+enum Status {
+    STATUS_FINISHED           = 0;
+    STATUS_START              = 1;
+    STATUS_RUNNING            = 2;
+    STATUS_ERROR              = 3;
+}
+
+enum ActionStatus {
+    ACT_FINISHED              = 0;
+    ACT_START                 = 1;
+    ACT_RUNNING               = 2;
+    ACT_ERROR                 = 3;
+}
+
+enum ResponseStatus {
+    RESPONSE_FINISHED         = 0;
+    RESPONSE_START            = 1;
+    RESPONSE_RUNNING          = 2;
+    RESPONSE_ERROR            = 3;
+}
+
+message Header {
+    optional int32 request_sequence   = 1;
+    optional int32 response_sequence  = 2;
+    optional uint64 timestamp         = 3;
+    optional string userdata          = 4;
+}
+
+message ParamData {
+    optional string key    = 1;
+    optional string val    = 2;
+    optional string txt    = 3;
+    optional bytes data    = 4;
+    optional string type   = 5;
+    optional string values = 6;
+}
+
+message ConfigData {
+    optional string dev_name      = 1;
+    optional string config_file   = 2;
+    repeated ParamData param_data = 3;
+}
+
+message DiagnosisData {
+    optional string devname   = 1;
+    optional string devtype   = 2;
+    optional string topic     = 3;
+    optional string module    = 4;
+    optional string status    = 5;
+    optional string data      = 6;
+};
+
+message ActionRequest {
+    optional Header header = 1;
+    optional ActionType action_type = 2;
+    optional int32 timeout_ms = 3;
+    repeated ParamData param_data = 4;
+}
+
+message ActionResponse {
+    optional Header header = 1;
+    optional ErrorCode error_code = 2;
+    optional ActionStatus action_status = 3;
+    optional double action_percent = 4;
+    optional int32 execute_time = 5;
+}
+
+message DiagnosisRequest {
+    optional Header header  = 1;
+}
+
+message DiagnosisResponse {
+    optional Header header      = 1;
+    repeated DiagnosisData data = 2;
+}
+
+message HardwareStatus {
+    // optional id = 1;
+    // optional memory_size = 2;
+}
+
+message SystemStatus {
+    // optional cpu_rate = 1;
+}
+
+message DeviceStatus {
+    // optional
+}
+
+message TopicStatus {
+    repeated TopicData topic_data = 1;
+}
+
+message DataItem {
+    optional int32 devid                = 1;
+    optional string devname             = 2;
+    optional string devtype             = 3;
+    optional string devdesp             = 4;
+}
+
+message DataList {
+    repeated DataItem data_item         = 1;
+}
+
+message StatusAlarm {
+    repeated AlarmData alarm_data       = 1;
+}
+
+// message StatusData {
+//     optional HardwareInfo hardware_info = 1;
+//     optional SystemStatus system_status = 2;
+//     optional DeviceStatus device_status = 3;
+//     optional DataStatus data_status     = 4;
+//     optional TopicStatus topic_status   = 5;
+// }
+
+message StatusRequest {
+    optional Header header                = 1;
+    optional int32 interval               = 2;
+}
+
+message AlarmData {
+    optional string id                    = 1;
+    optional uint64 code                  = 2;
+    optional uint64 timestamp             = 3;
+    optional string main_module           = 4;
+    optional string sub_module            = 5;
+    optional string level                 = 6;
+    optional string node_name             = 7;
+    optional string data                  = 8;
+}
+
+message TopicData {
+    optional string name                  = 1;
+    optional uint64 timestamp             = 2;
+    optional string msgtype               = 3;
+    optional string enable                = 4;
+    optional string simulated             = 5;
+    optional string data                  = 11;
+}
+
+message MotorData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+
+    optional int32 name                   = 11;
+    optional double pos                   = 12;
+    optional double speed                 = 13;
+    optional double current               = 14;
+    optional double temperature           = 15;
+    optional int32 error_code             = 16;
+}
+
+message RadarData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+}
+
+message ImuData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+
+    optional double orientation_x         = 11;
+    optional double orientation_y         = 12;
+    optional double orientation_z         = 13;
+    optional double orientation_w         = 14;
+    optional double angular_velocity_x    = 15;
+    optional double angular_velocity_y    = 16;
+    optional double angular_velocity_z    = 17;
+    optional double linear_acceleration_x = 18;
+    optional double linear_acceleration_y = 19;
+    optional double linear_acceleration_z = 20;
+    optional double roll                  = 21;
+    optional double pitch                 = 22;
+    optional double yaw                   = 23;
+}
+
+message HandData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+}
+
+message SixDofData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+}
+
+message SwitchData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+}
+
+message PowerData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+
+    optional double waist_temperature     = 11;  // 腰部温度
+    optional double left_arm_temperature  = 12;  // 左手温度
+    optional double right_arm_temperature = 13;  // 右手温度
+    optional double left_leg_temperature  = 14;  // 左腿温度
+    optional double right_leg_temperature = 15;  // 右腿温度
+
+    optional double left_arm_current      = 21;  // 左手电流
+    optional double right_arm_current     = 22;  // 右手电流
+    optional double left_leg_current      = 23;  // 左腿电流
+    optional double right_leg_current     = 24;  // 右腿电流
+    optional double waist_current         = 25;  // 腰部电流
+    optional double head_current          = 26;  // 头部电流
+    
+    optional int32 battery_type           = 31;  // 电池类型
+    optional double battery_voltage       = 32;  // 电池电压
+    optional double battery_current       = 33;  // 电池电流（正值表示充电，负值表示放电）
+    optional double battery_level         = 34;  // 电池电量
+    
+    optional string software_version      = 41;  // 软件版本号
+    optional int32 running_status         = 42;  // 组合值，无实际意义
+    optional int32 power_status           = 43;  // 0:关机，1：开机
+    optional int32 stop_status            = 44;  // 急停状态：0：非急停，1：急停
+    optional int32 remote_stop_status     = 45;  // 远程急停状态：0：非急停，1：急停
+}
+
+message BatteryData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+
+    optional double voltage               = 11;
+    optional double current               = 12;
+    optional double power                 = 13;
+}
+
+message SystemData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+
+    optional double cpu_used              = 11;
+    optional double cpu_user              = 12;
+    optional double cpu_sys               = 13;
+    optional double cpu_idle              = 14;
+    optional double cpu_wait              = 15;
+
+    optional double mem_total             = 21;
+    optional double mem_free              = 22;
+    optional double mem_used              = 23;
+    optional double mem_buffers           = 24;
+    optional double mem_cached            = 25;
+
+    optional double disk_total            = 31;
+    optional double disk_used             = 32;
+
+    optional string wifi_ssid             = 41;
+    optional string wifi_ip               = 42;
+
+    optional string operate_system        = 101;
+    optional string hardware_info         = 102;
+}
+
+message RobotData {
+    optional string robot_id              = 1;
+    optional string robot_name            = 2;
+    optional string robot_date            = 3;
+    optional string robot_desp            = 4;
+    optional string robot_type            = 5;
+}
+
+message VersionData {
+    optional string devid                 = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+
+    optional string module                = 10;
+    optional string product               = 11;
+    optional string platform              = 12;
+    optional string version               = 13;
+    optional string commit                = 14;
+    optional string release_time          = 15;
+    repeated string depend                = 16;
+    optional string file_name             = 17;
+    optional bool enable_upgrade          = 18;
+}
+
+message ChassisBaseError {
+    optional int32 id                     = 1;
+    optional int32 component              = 2;
+    optional int32 error_code             = 3;
+    optional int32 level                  = 4;
+    optional string message               = 5;
+}
+
+message ChassisData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+
+    optional int32 manufacturer_id        = 11;
+    optional string manufacturer_name     = 12;
+    optional int32 model_id               = 13;
+    optional string model_name            = 14;
+    optional string device_id             = 15;
+    optional string hardware_version      = 16;
+    optional string software_version      = 17;
+
+    optional bool has_warning             = 21;
+    optional bool has_error               = 22;
+    optional bool has_fatal               = 23;
+    repeated ChassisBaseError base_error  = 24;
+}
+
+message RemoteControlData {
+    optional int32 devid                  = 1;
+    optional string devname               = 2;
+    optional string devtype               = 3;
+    optional string devdesp               = 4;
+    optional uint64 timestamp             = 5;
+    optional string status                = 6;
+
+    optional string data                  = 11;
+}
+
+message AudioData {
+    optional int32 devid                  = 1;  // 设备ID
+    optional string devname               = 2;  // 设备名称
+    optional string devtype               = 3;  // 设备类型
+    optional string devdesp               = 4;  // 设备描述
+    optional uint64 timestamp             = 5;  // 时间戳
+    optional string status                = 6;  // 状态："ok"，"warn"，"error"，"fatal"
+    
+    optional string address               = 11; // 声卡所在的设备IP地址
+}
+
+message ModeInfo {
+    optional string id                    = 1;
+    optional string name                  = 2;
+    optional string desp                  = 3;
+}
+
+message ModeData {
+    optional string type                  = 1; // motion
+    optional string current_id            = 2; // 
+    optional string current_name          = 3; // 
+    repeated ModeInfo mode                = 4;
+}
+
+message ActionData {
+    optional string id                    = 1;  // id
+    optional string type                  = 2;  // 类型，如头部、手臂、跳舞或者复合动作等等
+    optional string name                  = 3;  // 动作名称
+    optional string desc                  = 4;  // 动作描述
+}
+
+message SpeechFile {
+    optional string id                    = 1;   // 音频ID
+    optional string name                  = 2;   // 音频名称
+    optional bool deletable               = 3;   // 是否可删除
+}
+
+message SpeechData {
+    optional string id                    = 1;    // id
+    optional string type                  = 2;    // 类型：如测试音频
+    optional string address               = 3;    // 文件所在地址IP
+    optional string path                  = 4;    // 音频目录
+    optional string desc                  = 5;    // 音频描述
+    repeated SpeechFile speech_file       = 6;    // 音频文件
+    optional string file_list             = 7;    // 音频顺序列表
+}
+
+message StatusData {
+    repeated VersionData version_data     = 1;
+    repeated AlarmData alarm_data         = 2;
+    repeated TopicData topic_data         = 3;
+    repeated MotorData motor_data         = 4;
+    repeated RadarData radar_data         = 5;
+    repeated ImuData imu_data             = 6;
+    repeated SwitchData switch_data       = 7;
+    repeated PowerData power_data         = 8;
+    repeated BatteryData battery_data     = 9;
+    repeated SystemData system_data       = 10;
+    repeated ChassisData chassis_data     = 11;
+    repeated RobotData robot_data         = 12;
+    repeated RemoteControlData remote_control_data = 13;
+    repeated ConfigData config_data       = 14;
+    repeated HandData hand_data           = 15;
+    repeated SixDofData six_dof_data      = 16;
+    repeated AudioData audio_data         = 17;
+    repeated ActionData action_data       = 18;
+    repeated SpeechData speech_data       = 19;
+    repeated ModeData mode_data           = 20;
+}
+
+message StatusResponse {
+    optional Header header                = 1;
+    optional StatusData status_data       = 2;
+    optional StatusAlarm status_alarm     = 3;
+}
+
+message VersionUpdateData {
+    optional string device                = 1;
+    optional string module                = 2;
+    optional string product               = 3;
+    optional string platform              = 4;
+    optional string version               = 5;
+    optional string filename              = 6;
+    optional string commit                = 7;
+    optional string release_time          = 8;
+    optional double percent               = 9;
+}
+
+message VersionUpdateResponse {
+    optional Header header                = 1;
+    optional bool upgrade_finished        = 2;
+    optional string upgrade_status        = 3;
+    optional string error_code            = 4;
+    optional string error_message         = 5;
+    optional string alert_type            = 6;
+    optional string alert_message         = 7;
+    optional string log_type              = 8;
+    optional string log_message           = 9;
+    optional double percent               = 10;
+
+    optional int32 total_stage            = 11;
+    optional int32 current_stage          = 12;
+    optional int32 total_module           = 13;
+    optional int32 current_module         = 14;
+    repeated VersionUpdateData data       = 15;
+}
+
+message LogData {
+    optional string devid                 = 1;
+    optional string package_name          = 2;
+    optional int32 percent                = 3;
+    optional string status                = 4;
+    optional string log_type              = 5;
+    optional string log_message           = 6;
+};
+
+message LogResponse {
+    optional Header header                = 1;
+    repeated LogData data                 = 2;
+}
+
+message Request {
+    optional Header header                = 1;
+    optional Command command              = 2;
+    repeated ParamData param_data         = 3;
+    repeated ConfigData config_data       = 4;
+}
+
+message Response {
+    optional Header header                                 = 1;
+    optional Command command                               = 2;
+    optional Status status                                 = 3;
+    optional ErrorCode error_code                          = 4;
+    optional string error_message                          = 5;
+
+    optional DataList data_list                            = 6;
+    optional StatusData status_data                        = 7;
+
+    optional ActionResponse action_response                = 8;
+    optional DiagnosisResponse diagnosis_response          = 9;
+    optional LogResponse log_response                      = 11;
+    optional VersionUpdateResponse version_update_response = 12;
+}
+
+service SdkApi {
+    rpc GetDataList(StatusRequest) returns (StatusResponse);
+    rpc RunStatus(StatusRequest) returns (stream StatusResponse);
+    rpc RunAction(ActionRequest) returns (stream ActionResponse);
+    rpc RunDiagnosis(DiagnosisRequest) returns (DiagnosisResponse);
+}

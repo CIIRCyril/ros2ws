@@ -1,0 +1,8 @@
+<launch>
+  <node_container pkg="rclcpp_components" exec="component_container" name="image_container_audio" namespace="">
+    <composable_node pkg="audio" plugin="com::xhumanoid::AudioNodelet" name="audio_node" namespace="">
+      <param name="xml_config_file" value="param/audio.xml" />
+    </composable_node>
+  </node_container>
+</launch>
+

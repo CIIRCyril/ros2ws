@@ -1,0 +1,11 @@
+<launch>
+
+  <param name="json_config_file" type="string" value="$(find diagnose)/param/proc_manager.json" />
+
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager_proc_manager"  args="manager" output="screen"/>
+  <node pkg="nodelet" type="nodelet" name="ProcManagerNodelet" args="load ProcManagerNodelet nodelet_manager_proc_manager" output="screen">
+    <param name="json_config_file" type="string" value="param/proc_manager.json" />
+  </node>
+
+</launch>
+

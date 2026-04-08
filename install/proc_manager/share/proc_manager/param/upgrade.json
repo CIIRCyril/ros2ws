@@ -1,0 +1,136 @@
+{
+  "config": {
+    "audio_player": "192.168.41.2",
+    "audio_path": "/home/nvidia/data/speech"
+  },
+  "topic":[
+    {
+      "name": "/bodycontrol_state",
+      "msgtype": "bodyctrl_msgs::NodeState"
+    },{
+      "name": "/power/board/key_status",
+      "msgtype": "bodyctrl_msgs::PowerBoardKeyStatus"
+    },{
+      "name": "/power/board/status",
+      "msgtype": "bodyctrl_msgs::PowerStatus"
+    },{
+      "name": "/sbus_data",
+      "msgtype": "sensor_msgs::Joy"
+    }
+  ],
+  "proc": [
+  ],
+  "trigger": [
+    {
+      "type": "OnInitStart",
+      "enable": true,
+      "action": [
+        { "audio_file": "kaijiqidong.mp3" }
+      ]
+    },
+    {
+      "type": "OnInitFinish",
+      "enable": true,
+      "action": [
+        { "power_light": "PowerOnFinish" },
+        { "power_light": "ServiceStart" }
+      ]
+    },
+    {
+      "type": "OnNodeState",
+      "enable": true,
+      "topic": "power_board_state",
+      "value": [ "0", "1" ],
+      "action": [
+        { "power_light": "PowerOnFinish" }
+      ]
+    },
+    {
+      "type": "OnNodeState",
+      "enable": true,
+      "topic": "bodycontrol_state",
+      "value": [ "0", "1" ],
+      "sleep_time_ms": 30000,
+      "condition": [
+        { "robot_status": "!=48vOff" }
+      ],
+      "stop_proc": [ "motion" ],
+      "start_proc": [ "motion" ],
+      "action": [
+        { "robot_status": "Running" }
+      ]
+    },
+    {
+      "type": "OnRobotStatusChanged",
+      "enable": true,
+      "value": [ "", "48vOff" ],
+      "value1": [ "Running", "48vOff" ],
+      "stop_proc": [ "motion", "body_control" ],
+      "action": [
+        { "audio_file": "guzhang.mp3" },
+        { "power_light": "DeviceFaultOccur" }
+      ]
+    },
+    {
+      "type": "OnRobotStatusChanged",
+      "enable": true,
+      "value": [ "", "Running" ],
+      "action": [
+        { "power_light1": "ServiceFinish" },
+        { "power_light": "SelfCheckSuccess" },
+        { "audio_file": "chenggong.wav" }
+      ]
+    },
+    {
+      "type": "OnRobotStatusChanged",
+      "enable": true,
+      "value": [ "", "Initing" ],
+      "count": -1,
+      "action": [
+        { "audio_file": "zijianguocheng.mp3" }
+      ]
+    },
+    {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "A",
+      "value": [ "", "1" ],
+      "condition": [
+        { "robot_status": "!=Running" },
+        { "robot_status": "!=48vOff" }
+      ],
+      "start_proc": [ "body_control" ],
+      "action": [
+        { "power_light": "ServiceFinish" },
+        { "power_light": "SelfCheckStart" },
+        { "audio_file": "anjianyin.mp3" },
+        { "robot_status": "Initing" }
+      ],
+      "failed": [
+        { "audio_file": "guzhang.mp3" }
+      ]
+    },
+    {
+      "type": "OnChangeMode",
+      "enable": true,
+      "value": [ "", "ota" ],
+      "condition": [
+      ],
+      "stop_proc": [ "motion", "body_control" ],
+      "action": [
+        { "robot_status": "Ota" }
+      ],
+      "failed": [
+        { "audio_file": "guzhang.mp3" }
+      ]
+    },
+    {
+      "type": "OnBatteryCharging",
+      "enable": true,
+      "action": [
+        { "audio_file": "kaishichongdian.mp3" }
+      ]
+    }
+  ]
+}
+

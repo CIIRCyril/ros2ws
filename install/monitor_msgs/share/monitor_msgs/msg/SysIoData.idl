@@ -1,0 +1,17 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from monitor_msgs/msg/SysIoData.msg
+// generated code does not contain a copyright notice
+
+#include "builtin_interfaces/msg/Time.idl"
+
+module monitor_msgs {
+  module msg {
+    struct SysIoData {
+      builtin_interfaces::msg::Time timestamp;
+
+      double disk_read;
+
+      double disk_write;
+    };
+  };
+};

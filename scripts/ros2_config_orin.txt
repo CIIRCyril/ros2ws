@@ -1,0 +1,5 @@
+ROS_LOG_DIR=/home/nvidia/logs
+ROS2_BAG_DIR=/home/nvidia/bags
+FASTRTPS_DEFAULT_PROFILES_FILE=/home/nvidia/data/param/dds_profile.xml
+RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+ROS_DOMAIN_ID=0

@@ -1,0 +1,20 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from monitor_msgs/msg/ProcMemData.msg
+// generated code does not contain a copyright notice
+
+
+module monitor_msgs {
+  module msg {
+    struct ProcMemData {
+      uint32 vmsize;
+
+      uint32 vmrss;
+
+      uint32 vmshared;
+
+      uint32 vmexe;
+
+      uint32 vmdata;
+    };
+  };
+};

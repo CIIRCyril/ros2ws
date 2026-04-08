@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<Data>
+  <topic name="/leg/status" msgtype="bodyctrl_msgs::MotorStatusMsg" enable="1" simulated="1" />
+  <topic name="/BodyControl/power_status" msgtype="bodyctrl_msgs::PowerStatus" enable="1" simulated="1" />
+  <topic name="/BodyControl/power_board_key_status" msgtype="bodyctrl_msgs::PowerBoardKeyStatus" enable="1" simulated="1" />
+
+  <device id="1" name="motor1" type="motor" desp="motor joint 1" topic="/leg/status"  index="0" />
+  <device id="2" name="motor1" type="motor" desp="motor joint 1" topic="/leg/status"  index="1" />
+  <device id="3" name="motor1" type="motor" desp="motor joint 1" topic="/leg/status"  index="2" />
+  <device id="4" name="motor1" type="motor" desp="motor joint 1" topic="/leg/status"  index="3" />
+  <device id="5" name="power_status" type="power" desp="power status" topic="/BodyControl/power_status" />
+  <device id="6" name="power_board_key_status" type="power" desp="power board key status" topic="/BodyControl/power_board_key_status" />
+
+  <device id="7" name="power_board" type="power" desp="power status">
+    <topic name="/BodyControl/power_status">
+    <topic name="/BodyControl/power_board_key_status">
+  </device>
+
+  <device id="8" name="x86"   type="system" remote="0" ip="192.168.11.11" desp="x86 system" update="auto" />
+  <device id="9" name="orinx" type="system" remote="1" ip="192.168.10.10" desp="x86 system" update="auto" />
+
+  <diagnosis id="1" enable="1" mode="CHECK_TOPIC_EXIST" />
+  <diagnosis id="2" enable="1" mode="CHECK_TOPIC_DATA" />
+  <diagnosis id="4" enable="1" mode="RUN_DIAGNOSIS_SERVICE" service="/leg/status/diagnosis_service" />
+
+  <config key="status_update_interval" val="100"></config>
+  <config key="web_dir" val="web/dist"></config>
+</Data>
+

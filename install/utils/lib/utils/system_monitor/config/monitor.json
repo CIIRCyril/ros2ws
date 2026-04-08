@@ -1,0 +1,73 @@
+{
+    "ros_node_name":"sys_monitor",
+    "topic":{
+        "cpu":"/monitor/cpu_monitor_data",
+        "memery":"/monitor/mem_monitor_data",
+        "proc":"/monitor/proc_monitor_data"
+    },
+    "log":{
+        "log_name":"sys_monitor",
+        "log_path":"/home/ubuntu/logs/glogs",
+        "debug":false
+    },
+    "cpu":{
+        "interval_ms": 200
+    },
+    "memery":{
+        "interval_s": 2
+    },
+    "proc":{
+        "active_interval_s": 5,
+        "status_interval_s": 2,
+        "monitor_list": [
+            {
+                "name": "power_board",
+                "cmdline": "component_container_mt --ros-args -r __node:=image_container_powerboard"
+            },
+            {
+                "name": "xsys",
+                "cmdline": "component_container --ros-args -r __node:=xsys_container"
+            },
+            {
+                "name": "bluetooth",
+                "cmdline": "component_container_mt --ros-args -r __node:=bluetooth_container"
+            },
+            {
+                "name": "audio",
+                "cmdline": "component_container_mt --ros-args -r __node:=audio_node_container"
+            },
+            {
+                "name": "sbus",
+                "cmdline": "usb_sbus_node --ros-args -r __node:=usb_sbus"
+            },
+            {
+                "name": "diagnose",
+                "cmdline": "component_container_mt --ros-args -r __node:=diagnose_tiangong"
+            },
+            {
+                "name": "disk_manager",
+                "cmdline": "disk_manage -c ../config/disk_manage.json"
+            },
+            {
+                "name": "bag_record",
+                "cmdline": "bag_record_trigger -c ../config/record.json"
+            },
+            {
+                "name": "body_control",
+                "cmdline": "component_container --ros-args -r __node:=bodyctrl_nodes"
+            },
+            {
+                "name": "motion_rl",
+                "cmdline": "rl_control/lib/rl_control/rl_control_node"
+            },
+            {
+                "name": "motion",
+                "cmdline": "component_container_mt --ros-args -r __node:=container_component_demo"
+            },
+            {
+                "name": "analysis_monitor",
+                "cmdline": "system_monitor -c ../config/monitor.json"
+            }
+        ]
+    }
+}

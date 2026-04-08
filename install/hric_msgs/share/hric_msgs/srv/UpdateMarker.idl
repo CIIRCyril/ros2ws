@@ -1,0 +1,45 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from hric_msgs/srv/UpdateMarker.srv
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Pose2D.idl"
+#include "hric_msgs/msg/MarkerInfo.idl"
+
+module hric_msgs {
+  module srv {
+    struct UpdateMarker_Request {
+      @verbatim (language="comment", text=
+        "marker名字（名字唯一，重名返回失败）")
+      string name;
+
+      @verbatim (language="comment", text=
+        "地图id，置空默认为当前地图。")
+      string map_id;
+
+      @verbatim (language="comment", text=
+        "楼层名字，置空默认为当前楼层。")
+      string floor;
+
+      @verbatim (language="comment", text=
+        "marker的位置,theta取值范围[-pi,pi)")
+      geometry_msgs::msg::Pose2D pose;
+    };
+    struct UpdateMarker_Response {
+      @verbatim (language="comment", text=
+        "表示服务调用是否成功")
+      boolean success;
+
+      @verbatim (language="comment", text=
+        "调用失败原因")
+      string message;
+
+      @verbatim (language="comment", text=
+        "返回的marker信息")
+      hric_msgs::msg::MarkerInfo marker_old;
+
+      @verbatim (language="comment", text=
+        "返回的marker信息")
+      hric_msgs::msg::MarkerInfo marker_new;
+    };
+  };
+};

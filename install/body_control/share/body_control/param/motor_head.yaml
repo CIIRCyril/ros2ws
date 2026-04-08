@@ -1,0 +1,9 @@
+# name, canIds[], slaveId, channel, passages[], type, mode, rateWork, rateReq, offset
+#  -- control_mode: 
+#       PV = 1,    // 轮廓速度模式，上报位置、速度和错误
+#       UPP = 11,   // 目标位置匀速规划模式（Uniform speed Planning mode for target Position），上报位置和错误
+
+motor_head:
+  - [1, [1], 1, 0, [11], 11, 0, 400, 400, 1, 180, -180]  # 
+  - [2, [2], 1, 0, [12], 11, 0, 400, 400, 1, 180, -180]  # 
+  - [3, [3], 1, 0, [13], 11, 0, 400, 400, 1, 180, -180]  # 

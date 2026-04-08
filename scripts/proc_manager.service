@@ -1,0 +1,15 @@
+[Unit]
+Description=body_control
+
+[Service]
+User=root
+
+ExecStart=/home/ubuntu/data/scripts/startup_proc_manager.bash
+Restart=always
+Type=simple
+RestartSec=1
+StartLimitInterval=0
+
+[Install]
+WantedBy = multi-user.target
+

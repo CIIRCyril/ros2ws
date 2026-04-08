@@ -1,0 +1,27 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from hric_msgs/msg/MarkerInfo.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Pose2D.idl"
+
+module hric_msgs {
+  module msg {
+    struct MarkerInfo {
+      @verbatim (language="comment", text=
+        "marker的名称，名称唯一")
+      string name;
+
+      @verbatim (language="comment", text=
+        "地图ID")
+      string map_id;
+
+      @verbatim (language="comment", text=
+        "楼层名称")
+      string floor;
+
+      @verbatim (language="comment", text=
+        "marker的位置")
+      geometry_msgs::msg::Pose2D pose;
+    };
+  };
+};

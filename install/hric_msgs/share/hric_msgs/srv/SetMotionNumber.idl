@@ -1,0 +1,21 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from hric_msgs/srv/SetMotionNumber.srv
+// generated code does not contain a copyright notice
+
+
+module hric_msgs {
+  module srv {
+    @verbatim (language="comment", text=
+      "请求参数")
+    struct SetMotionNumber_Request {
+      boolean is_motion;
+
+      int32 motion_number;
+    };
+    @verbatim (language="comment", text=
+      "响应参数")
+    struct SetMotionNumber_Response {
+      boolean success;
+    };
+  };
+};

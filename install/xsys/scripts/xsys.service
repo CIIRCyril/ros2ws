@@ -1,0 +1,17 @@
+[Unit]
+Description=xsys service
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+User=root
+
+ExecStart=/bin/bash /home/ubuntu/robin/install/xsys/scripts/init.sh
+ExecStop=/bin/bash  /home/ubuntu/robin/install/xsys/scripts/deinit.sh
+Restart=always
+Type=simple
+RestartSec=5
+StartLimitInterval=0
+
+[Install]
+WantedBy = multi-user.target

@@ -1,0 +1,7 @@
+ROS_LOG_DIR=${home_dir}/logs
+ROS2_BAG_DIR=${home_dir}/bags
+FASTRTPS_DEFAULT_PROFILES_FILE=${home_dir}/data/param/dds_profile.xml
+RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+ROS_DOMAIN_ID=0
+HUMANOID_SN=${sn}
+

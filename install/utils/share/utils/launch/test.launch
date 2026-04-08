@@ -1,0 +1,15 @@
+<!--launch>
+  <node name="test" pkg="rosbash" type="bash" args="$(find devtool)/bin/test.sh" output="screen" respawn="true"/>
+</launch-->
+
+<launch>
+  <!-- 设置一些参数 -->
+  <arg name="script_path" default="$(find devtool)/bin/test.sh" doc="shell脚本的路径"/>
+  <arg name="arg1" default="value1" doc="传递给脚本的第一个参数"/>
+  <arg name="arg2" default="value2" doc="传递给脚本的第二个参数"/>
+  
+  <!-- 启动shell脚本作为一个节点 -->
+  <node name="shell_script_node" pkg="rosbash" type="bash" args="$(arg script_path) $(arg arg1) $(arg arg2)" output="screen" respawn="false"/>
+  
+</launch>
+

@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<Data>
+  <robot name="天轶" date="0000-00-00" desp="robot" type="TY2.0-ProD"></robot>
+
+  <topic name="/arm/status" msgtype="bodyctrl_msgs::MotorStatusMsg" enable="1" simulated="0" />
+  <topic name="/leg/status" msgtype="bodyctrl_msgs::MotorStatusMsg" enable="1" simulated="0" />
+  <topic name="/waist/status" msgtype="bodyctrl_msgs::MotorStatusMsg" enable="1" simulated="0" />
+  <topic name="/head/status" msgtype="bodyctrl_msgs::MotorStatusMsg" enable="1" simulated="0" />
+  <topic name="/inspire_hand/state/left_hand" msgtype="sensor_msgs::JointState" enable="1" simulated="0" />
+  <topic name="/inspire_hand/state/right_hand" msgtype="sensor_msgs::JointState" enable="1" simulated="0" />
+  <topic name="/arm_6dof_left" msgtype="geometry_msgs::WrenchStamped" enable="1" simulated="0" />
+  <topic name="/arm_6dof_right" msgtype="geometry_msgs::WrenchStamped" enable="1" simulated="0" />
+  <topic name="/imu/status" msgtype="bodyctrl_msgs::Imu" enable="1" simulated="0" />
+  <topic name="/sbus_data" msgtype="sensor_msgs::Joy" enable="1" simulated="0" />
+  <topic name="/power/board/key_status" msgtype="bodyctrl_msgs::PowerBoardKeyStatus" enable="1" simulated="0" />
+  <topic name="/power/board/status" msgtype="bodyctrl_msgs::PowerStatus" enable="1" simulated="0" />
+  <topic name="/imu/offset_notify" msgtype="std_msgs::String" enable="1" pub="1" simulated="0" />
+  <topic name="/audio/config/notify" msgtype="std_msgs::String" enable="1" pub="1" simulated="0" />
+  <topic name="/proc_manager/config/notify" msgtype="std_msgs::String" enable="1" pub="1" simulated="0" />
+
+  <service name="/diagnose/version/upgrade" msgtype="bodyctrl_msgs::srv::VersionUpgrade" enable="1" simulated="0" server="true" type="diagnose_service"/>
+  <service name="/ota/version/upgrade" msgtype="bodyctrl_msgs::srv::VersionUpgrade" enable="1" simulated="0" server="false" type="ota_service"/>
+  <service name="/proc_manager/version/upgrade" msgtype="bodyctrl_msgs::srv::VersionUpgrade" enable="1" simulated="0" server="false" type="proc_service"/>
+
+  <device id="1" name="motor1" type="motor" desp="头关节周转" topic="/head/status"  index="0" canid="1"/>
+  <device id="2" name="motor2" type="motor" desp="头关节俯仰" topic="/head/status"  index="0" canid="2"/>
+  <device id="3" name="motor3" type="motor" desp="头关节侧展" topic="/head/status"  index="0" canid="3"/>
+
+  <device id="21" name="motor11" type="motor" desp="左肩关节俯仰" topic="/arm/status"  index="0" canid="11"/>
+  <device id="22" name="motor12" type="motor" desp="左肩关节侧展" topic="/arm/status"  index="0" canid="12"/>
+  <device id="23" name="motor13" type="motor" desp="左肩关节周转" topic="/arm/status"  index="0" canid="13"/>
+  <device id="24" name="motor14" type="motor" desp="左肘关节侧展" topic="/arm/status"  index="0" canid="14"/>
+  <device id="25" name="motor15" type="motor" desp="左腕关节周转" topic="/arm/status"  index="0" canid="15"/>
+  <device id="26" name="motor16" type="motor" desp="左腕关节俯仰" topic="/arm/status"  index="0" canid="16"/>
+  <device id="27" name="motor17" type="motor" desp="左腕关节侧展" topic="/arm/status"  index="0" canid="17"/>
+
+  <device id="11" name="motor21" type="motor" desp="右肩关节俯仰" topic="/arm/status"  index="0" canid="21"/>
+  <device id="12" name="motor22" type="motor" desp="右肩关节侧展" topic="/arm/status"  index="0" canid="22"/>
+  <device id="13" name="motor23" type="motor" desp="右肩关节周转" topic="/arm/status"  index="0" canid="23"/>
+  <device id="14" name="motor24" type="motor" desp="右肘关节侧展" topic="/arm/status"  index="0" canid="24"/>
+  <device id="15" name="motor25" type="motor" desp="右腕关节周转" topic="/arm/status"  index="0" canid="25"/>
+  <device id="16" name="motor26" type="motor" desp="右腕关节俯仰" topic="/arm/status"  index="0" canid="26"/>
+  <device id="17" name="motor27" type="motor" desp="右腕关节侧展" topic="/arm/status"  index="0" canid="27"/>
+
+  <device id="31" name="motor31" type="motor" desp="腰关节周转" topic="/waist/status"  index="0" canid="31"/>
+  <device id="32" name="motor32" type="motor" desp="腰关节俯仰" topic="/waist/status"  index="0" canid="32"/>
+
+  <device id="41" name="right_6dof" type="6dof" desp="右六维力" topic="/arm_6dof_right"  index="0" canid="0"/>
+  <device id="42" name="right_hand" type="hand" desp="右手" topic="/inspire_hand/state/right_hand"  index="0" canid="0"/>
+  <device id="43" name="left_6dof" type="6dof" desp="左六维力" topic="/arm_6dof_left"  index="0" canid="0"/>
+  <device id="44" name="left_hand" type="hand" desp="左手" topic="/inspire_hand/state/left_hand"  index="0" canid="0"/>
+
+  <device id="51" name="motor51" type="motor" desp="髋关节俯仰" topic="/leg/status"  index="0" canid="51"/>
+  <device id="52" name="motor52" type="motor" desp="膝关节俯仰" topic="/leg/status"  index="0" canid="52"/>
+
+  <device id="101" name="power_board" type="power" desp="power status">
+    <topic name="/power/board/status" />
+    <topic name="/power/board/key_status" />
+  </device>
+  <device id="102" name="switch" type="switch" desp="switch">
+    <topic name="/power/board/key_status" />
+  </device>
+
+  <device id="103" name="version" type="version" remote="0" ip="192.168.41.1" desp="整机版本" user="ubuntu" pwd="123" />
+  <device id="104" name="x86"   type="system" remote="0" ip="192.168.41.1" desp="x86 system" user="ubuntu" pwd="123" />
+
+  <device id="110" name="battery" type="battery" desp="48V" topic="/power/board/status" />
+  <device id="111" name="remote_control" type="remote_control" desp="遥控器" topic="/sbus_data" />
+
+  <device id="201" name="upgrade all" type="upgrade" desp="upgrade control">
+    <service name="/diagnose/version/upgrade" />
+    <service name="/ota/version/upgrade" />
+    <service name="/proc_manager/version/upgrade" />
+  </device>
+
+  <device id="202" name="audio_dev" type="audio" remote="1" ip="192.168.41.2" desp="orin audio" user="nvidia" pwd="nvidia"/>
+
+  <speech name="sbus_speech" type="sbus" remote="1" ip="192.168.41.2" desp="sbus speech" user="nvidia" pwd="nvidia" path="/home/nvidia/data/speech/sbus" deletable="1" />
+  <speech name="builtin_speech" type="builtin" remote="1" ip="192.168.41.2" desp="builtin speech" user="nvidia" pwd="nvidia" path="/home/nvidia/data/speech/builtin" deletable="0" />
+
+  <config key="status_update_interval" val="1000"></config>
+  <config key="web_dir" val="web/dist"></config>
+  <config key="log_level" val="1"></config>
+  <config key="version_upgrade_wait_estop_pressed_timeout" val="120"></config>
+  <config key="version_upgrade_wait_estop_release_timeout" val="120"></config>
+  <config key="version_upgrade_upload_file_interval" val="10"></config>
+
+  <config key="enable_auto_update_topic" val="1"></config>
+  <config key="enable_auto_update_alarm" val="1"></config>
+  <config key="enable_auto_update_battery" val="1"></config>
+  <config key="enable_auto_update_chassis" val="0"></config>
+  <config key="enable_auto_update_motor" val="1"></config>
+  <config key="enable_auto_update_power" val="1"></config>
+  <config key="enable_auto_update_switch" val="1"></config>
+  <config key="enable_auto_update_remote_control" val="1"></config>
+  <config key="enable_auto_update_audio" val="1"></config>
+  <config key="enable_auto_update_hand" val="1"></config>
+  <config key="enable_auto_update_6dof" val="1"></config>
+  <config key="enable_auto_update_system" val="1"></config>
+  <config key="enable_auto_update_topic" val="1"></config>
+  <config key="enable_auto_update_version" val="1"></config>
+
+  <config key="enable_upgrade_check_proc_manager" val="0"></config>
+  <config key="enable_upgrade_check_ota_service" val="0"></config>
+  <config key="enable_upgrade_check_powerboard" val="1"></config>
+  <config key="enable_upgrade_check_estop_status" val="1"></config>
+  <config key="enable_upgrade_wait_status_ok" val="1"></config>
+  <config key="enable_auto_update_sbus_audio_list" val="0"></config>
+  <config key="speech_file_cache_path" val="/home/ubuntu/data"></config>
+
+  <param dev="x86" file="/home/ubuntu/data/param/audio_config.txt" topic="/audio/config/notify" enable="1">
+    <item key="audio_player" type="string" enable="0" />
+    <item key="audio_path"   type="string" enable="0" />
+    <item key="audio_list"   type="string" enable="1" />
+  </param>
+</Data>

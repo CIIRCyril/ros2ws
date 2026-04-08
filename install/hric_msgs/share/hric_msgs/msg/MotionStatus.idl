@@ -1,0 +1,44 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from hric_msgs/msg/MotionStatus.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Twist.idl"
+#include "std_msgs/msg/Header.idl"
+
+module hric_msgs {
+  module msg {
+    module MotionStatus_Constants {
+      @verbatim (language="comment", text=
+        "无异常")
+      const uint32 NONE = 0;
+      const uint32 UNKNOWN = 400;
+    };
+    @verbatim (language="comment", text=
+      "运控错误码")
+    struct MotionStatus {
+      @verbatim (language="comment", text=
+        "时间戳和坐标系")
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "机器人腰部坐标系速度")
+      geometry_msgs::msg::Twist velocity;
+
+      @verbatim (language="comment", text=
+        "行走状态 0: stop , 1: zero, 2: Z2S, 3: stand, 4: S2W, 5: walk, 6: start, 7: run")
+      uint8 walk_mode;
+
+      @verbatim (language="comment", text=
+        "是否为遥控器操控 true:遥控器操纵false：导航操控")
+      boolean is_console_control;
+
+      @verbatim (language="comment", text=
+        "是否为walk摆臂状态")
+      boolean is_swing_arm;
+
+      @verbatim (language="comment", text=
+        "错误码")
+      uint32 error_code;
+    };
+  };
+};

@@ -1,0 +1,11 @@
+<launch>
+
+  <param name="json_config_file" type="string" value="$(find diagnose)/param/audio.json" />
+
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager_proc_manager_audio"  args="manager" output="screen"/>
+  <node pkg="nodelet" type="nodelet" name="ProcManagerAudioNodelet" args="load ProcManagerNodelet nodelet_manager_proc_manager_audio" output="screen">
+    <param name="json_config_file" type="string" value="param/audio.json" />
+  </node>
+
+</launch>
+

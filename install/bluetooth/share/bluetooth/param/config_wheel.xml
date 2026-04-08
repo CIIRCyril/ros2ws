@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<Data>
+  <channel msgtype="bodyctrl_msgs::MotorStatusMsg" topic="/leg/status" enable="1" simulated="0" />
+
+  <config key="status_update_interval" val="100"></config>
+  <!--config key="web_dir" val="web/dist"></config-->
+  <config key="web_dir" val="web/dist"></config>
+</Data>
+

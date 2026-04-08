@@ -1,0 +1,7 @@
+<launch>
+  <node_container pkg="rclcpp_components" exec="component_container_mt" name="diagnose_tiangong2_upgrade_container" namespace="">
+    <composable_node pkg="diagnose" plugin="debugger::DebuggerNodelet" name="diagnose_tiangong2_upgrade_node" namespace="">
+      <param name="xml_config_file" value="param/upgrade.xml" />
+    </composable_node>
+  </node_container>
+</launch>

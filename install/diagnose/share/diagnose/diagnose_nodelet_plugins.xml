@@ -1,0 +1,6 @@
+<library path="lib/libdiagnose">
+  <class name="debugger/DebuggerNodelet" type="debugger::DebuggerNodelet" base_class_type="nodelet::Nodelet">
+  <description>debugger nodelet</description>
+  </class>
+</library>
+

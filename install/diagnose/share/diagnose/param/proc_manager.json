@@ -1,0 +1,75 @@
+{
+  "topic":[
+    {
+      "name": "/bodycontrol_state",
+      "msgtype": "bodyctrl_msgs::NodeState"
+    },{
+      "name": "/BodyControl/powerboard_key_status",
+      "msgtype": "bodyctrl_msgs::PowerBoardKeyStatus"
+    },{
+      "name": "/sbus_data",
+      "msgtype": "sensor_msgs::Joy"
+    }
+  ],
+  "proc": [
+    {
+      "name": "test",
+      "enable": false,
+      "shell": "watch ls /home > /home/ubuntu/111.log 2>&1 &"
+    },{
+      "name": "usb_sbus",
+      "enable": true,
+      "shell": "rosrun usb_sbus usb_sbus_node",
+      "boot_start": true
+    },{
+      "name": "body_control",
+      "enable": true,
+      "shell": "roslaunch body_control body.launch",
+      "shell_max2": "roslaunch body_control motion_evt_max2.launch",
+      "boot_start": false,
+      "ready_topic": "bodycontrol_state",
+      "ready_timeout": 20
+    },{
+      "name": "motion",
+      "enable": true,
+      "shell": "roslaunch motion_control motion.launch"
+    }
+  ],
+  "trigger": [
+    {
+      "type": "OnNodeState",
+      "enable": true,
+      "topic": "bodycontrol_state",
+      "value": [ "0", "1" ],
+      "stop_proc": [ "motion" ],
+      "start_proc": [ "motion" ],
+      "robot_status": "Running"
+    },
+    {
+      "type": "OnRobotStatusChanged",
+      "enable": true,
+      "value": [ "Running", "48vOff" ],
+      "stop_proc": [ "motion" ]
+    },
+    {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "A",
+      "value": [ "", "1" ],
+      "start_proc": [ "body_control" ]
+    },
+    {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "D",
+      "value": [ "", "1" ]
+    },
+    {
+      "type": "OnProcDied",
+      "enable": true,
+      "proc_name": "",
+      "stop_pfor": [ "" ],
+      "start_proc": [ "" ]
+    }
+  ]
+}

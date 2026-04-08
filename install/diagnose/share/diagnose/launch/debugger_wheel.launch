@@ -1,0 +1,10 @@
+<launch>
+  <arg name="xml_config_file" default="$(find diagnose)/param/config_wheel.xml"/>
+
+  <param name="xml_config_file" type="string" value="$(find diagnose)/param/config_wheel.xml" />
+
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager2"  args="manager" output="screen"/>
+  <node pkg="nodelet" type="nodelet" name="DebuggerNodelet" args="load debugger/DebuggerNodelet nodelet_manager2" output="screen">
+    <param name="xml_config_file" type="string" value="1234" />
+  </node>
+</launch>

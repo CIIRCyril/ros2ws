@@ -1,0 +1,12 @@
+<launch>
+  <node_container pkg="rclcpp_components" exec="component_container_mt" name="image_container_powerboard" namespace="" output='screen'>
+    <composable_node pkg="power_board" plugin="com::xhumanoid::PowerBoardNodelet" name="power_board_node" namespace="">
+      <param name="com_port" value="/dev/ttyS1" />
+      <param name="enable_power_light" value="'1'" />
+      <param name="enable_power_status" value="'1'" />
+      <param name="enable_power_battery_status" value="'1'" />
+      <param name="enable_power_board_key_status" value="'1'" />
+      <param name="enable_power_set_timestamp" value="'1'" />
+    </composable_node>
+  </node_container>
+</launch>

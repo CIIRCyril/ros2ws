@@ -1,0 +1,146 @@
+{
+  "product": "TG2.0-Pro",
+  "version": "v2.0.4.6",
+  "commit": "bu/integration/tiangong2.0/pro,c1b60b83d3f73b65a9cb6f04935cbd330e8269aa",
+  "release_time": "2025-09-08",
+  "x86": [
+    {
+      "module": "benti",
+      "status": "enable",
+      "product": "TG2.0-Pro",
+      "platform": "linux-x86",
+      "version": "v2.0.4.6",
+      "file_name": "TG2.0-Pro_linux-x86_general_v2.0.4.6_20250908_143200.tar.gz",
+      "commit": "bu/project/tiangong2.0/pro,851e01b50f19c25117bf73abe53f75ffda1da2b2",
+      "install_dir_name": "ros2ws",
+      "install_address": "192.168.41.1",
+      "release_time": "2025-09-08 14:38:04"
+    },
+    {
+      "module": "ota",
+      "status": "enable",
+      "product": "ota",
+      "platform": "linux-x86",
+      "version": "v2.0.7",
+      "file_name": "ota_linux-x86_general_v2.0.7_20250805_211023.tar.gz",
+      "commit": "bu/base/ota,d20fdc662604f6af800dc9d7b0fac40353a98997",
+      "install_dir_name": "ota",
+      "install_address": "192.168.41.1",
+      "release_time": "2025-08-05 21:11:23"
+    },
+    {
+      "module": "xsys",
+      "status": "enable",
+      "product": "xsys",
+      "platform": "linux-x86",
+      "version": "01468627",
+      "file_name": "xsys_linux-x86_general_01468627_20250604_113312.tar.gz",
+      "commit": "bu/base/xsys,0146862755115130a0408cc107dcb4a7dd5bf383",
+      "install_dir_name": "xsys",
+      "install_address": "192.168.41.1",
+      "release_time": "2025-06-04 11:33:12"
+    }
+  ],
+  "orin_slam": [
+    {
+      "module": "orbbec_camera",
+      "status": "enable",
+      "product": "OrbbecCamera-Orin",
+      "platform": "ros2",
+      "version": "v2.0.2",
+      "file_name": "OrbbecCamera-Orin_ros2_tg2.0-pro_v2.0.2_20250717_222400.tar.gz",
+      "commit": "bu/project/camera/orbbec_camera,e141e4a521f9552f42e57979ec95329cb47bcaba",
+      "install_dir_name": "orbbec_camera_ros2",
+      "install_address": "192.168.41.3",
+      "release_time": "2025-07-17 22:24:00"
+    }
+  ],
+  "orin_llm": [
+    {
+      "module": "orbbec_camera",
+      "status": "enable",
+      "product": "OrbbecCamera-Orin",
+      "platform": "ros2",
+      "version": "v2.0.2",
+      "file_name": "OrbbecCamera-Orin_ros2_tg2.0-pro_v2.0.2_20250717_222400.tar.gz",
+      "commit": "bu/project/camera/orbbec_camera,e141e4a521f9552f42e57979ec95329cb47bcaba",
+      "install_dir_name": "orbbec_camera_ros2",
+      "install_address": "192.168.41.2",
+      "release_time": "2025-07-17 22:24:00"
+    },
+    {
+      "module": "audio_ros2",
+      "status": "enable",
+      "product": "Voice-Orin",
+      "platform": "ros2",
+      "version": "v2.0.2",
+      "file_name": "Voice-Orin_ros2_general_v2.0.2_20250714_144633.tar.gz",
+      "commit": "bu/project/common/xunfei_dev_socket,c9011ed14843df8b11ae1931a7b59bb4355b526e",
+      "install_dir_name": "audio_ros2",
+      "install_address": "192.168.41.2",
+      "release_time": "2025-07-14 14:46:33"
+    },
+    {
+      "module": "lyre_ros2",
+      "status": "enable",
+      "product": "lyre_ros2",
+      "platform": "aarch64",
+      "version": "a41726c9",
+      "file_name": "lyre_ros2-aarch64-a41726c9-20250804_172835.tar.gz",
+      "commit": "bu/project/common/lyre_ros2,a41726c9475e81e3c39388ec7ac0dd0a897e0f66",
+      "install_dir_name": "lyre_ros2",
+      "install_address": "192.168.41.2",
+      "release_time": "2025-08-04 17:28:35"
+    },
+    {
+      "module": "livox_ros_driver2",
+      "status": "enable",
+      "product": "livox_ros_driver2",
+      "platform": "linux-x86",
+      "version": "v2.0.0",
+      "file_name": "livox_ros_driver2_linux-orin_ros2-general_v2.0.0_20250718_105822.tar.gz",
+      "commit": "bu/project/common/livox_ros_driver2,c06a41b745b44b86c220791089564d5972a4ad36",
+      "install_dir_name": "livox_ros_driver2",
+      "install_address": "192.168.41.2",
+      "release_time": "2025-07-18 10:59:14"
+    }
+  ],
+  "firmware": [
+    {
+      "module": "joint-e2c",
+      "status": "enable",
+      "product": "TG2.0-SelfJoint-e2c",
+      "platform": "",
+      "version": "v1.0.6",
+      "file_name": "TG2.0_SelfJoint_e2c_general_v1.0.6_pro_20250828_1002000.tar.gz",
+      "commit": "UniversalHumanoidPrototypeGroup/OldProjects/mcu_ota,f9c08a12cd4f1f05b1721f98c33538656be02771",
+      "install_dir_name": "joint-e2c",
+      "install_address": "",
+      "release_time": "2025-08-28_10:02:00"
+    },
+    {
+      "module": "joint-u2c",
+      "status": "enable",
+      "product": "TG2.0-SelfJoint-u2c",
+      "platform": "",
+      "version": "v1.0.6",
+      "file_name": "TG2.0_SelfJoint_u2c_general_v1.0.6_pro_20250828_105900.tar.gz",
+      "commit": "UniversalHumanoidPrototypeGroup/OldProjects/mcu_ota,3372230261cf986e55e15dd0f756ef2ebe0907c8",
+      "install_dir_name": "joint-u2c",
+      "install_address": "",
+      "release_time": "2025-08-28_10:59:00"
+    },
+    {
+      "module": "powerboard",
+      "status": "enable",
+      "product": "TG2.0-PowerBoard_Serial",
+      "platform": "",
+      "version": "v1.0.1",
+      "file_name": "TG2.0_PowerBoard_Serial_general_v1.0.1_20250729_120200.tar.gz",
+      "commit": "UniversalHumanoidPrototypeGroup/OldProjects/mcu_ota,6bf8b6c684c184fd9f10cbb6d10d46f1638f6877",
+      "install_dir_name": "powerboard",
+      "install_address": "",
+      "release_time": "2025-07-29_12:02:00"
+    }
+  ]
+}

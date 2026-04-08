@@ -1,0 +1,18 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from hric_msgs/srv/ListMarkers.srv
+// generated code does not contain a copyright notice
+
+#include "hric_msgs/msg/MarkerInfo.idl"
+
+module hric_msgs {
+  module srv {
+    struct ListMarkers_Request {
+      uint8 structure_needs_at_least_one_member;
+    };
+    struct ListMarkers_Response {
+      @verbatim (language="comment", text=
+        "返回的marker信息列表")
+      sequence<hric_msgs::msg::MarkerInfo> markers;
+    };
+  };
+};

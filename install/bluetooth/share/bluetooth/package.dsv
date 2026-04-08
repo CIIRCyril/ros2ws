@@ -1,0 +1,17 @@
+source;share/bluetooth/hook/cmake_prefix_path.ps1
+source;share/bluetooth/hook/cmake_prefix_path.dsv
+source;share/bluetooth/hook/cmake_prefix_path.sh
+source;share/bluetooth/hook/ld_library_path_lib.ps1
+source;share/bluetooth/hook/ld_library_path_lib.dsv
+source;share/bluetooth/hook/ld_library_path_lib.sh
+source;share/bluetooth/hook/path.ps1
+source;share/bluetooth/hook/path.dsv
+source;share/bluetooth/hook/path.sh
+source;share/bluetooth/hook/pythonscriptspath.ps1
+source;share/bluetooth/hook/pythonscriptspath.dsv
+source;share/bluetooth/hook/pythonscriptspath.sh
+source;share/bluetooth/local_setup.bash
+source;share/bluetooth/local_setup.dsv
+source;share/bluetooth/local_setup.ps1
+source;share/bluetooth/local_setup.sh
+source;share/bluetooth/local_setup.zsh

@@ -1,0 +1,190 @@
+{
+  "config": {
+    "enable_debug": false,
+    "audio_player": "192.168.41.2",
+    "audio_path": "/home/nvidia/data/speech/builtin",
+    "motion_type": "rl_control",
+    "config_file": "/home/ubuntu/data/param/proc_manager.txt"
+  },
+  "topic":[
+    {
+      "name": "/bodycontrol_state",
+      "msgtype": "bodyctrl_msgs::NodeState"
+    },{
+      "name": "/power/board/key_status",
+      "msgtype": "bodyctrl_msgs::PowerBoardKeyStatus"
+    },{
+      "name": "/power/board/status",
+      "msgtype": "bodyctrl_msgs::PowerStatus"
+    },{
+      "name": "/sbus_data",
+      "msgtype": "sensor_msgs::Joy"
+    }
+  ],
+  "proc": [
+    {
+      "name": "power_board",
+      "enable": true,
+      "shell": "ros2 launch power_board power_board.py",
+      "boot_start": true,
+      "ready_topic": "power_board_state"
+    },{
+      "name": "xsys",
+      "enable": true,
+      "shell": "ros2 launch xsys xsys.launch.py",
+      "boot_start": true,
+      "ready_topic": "xsys_state"
+    },{
+      "name": "bluetooth",
+      "enable": false,
+      "shell": "ros2 launch bluetooth bluetooth.py",
+      "boot_start": true,
+      "ready_topic": "bluetooth_state"
+    },{
+      "name": "audio",
+      "enable": true,
+      "shell": "ros2 launch audio audio.launch.py",
+      "boot_start": true,
+      "ready_topic": "audio_state"
+    },{
+      "name": "usb_sbus",
+      "enable": true,
+      "shell": "ros2 launch usb_sbus usb_sbus.launch.py",
+      "shell1": "rosrun usb_sbus usb_sbus_node",
+      "boot_start": true
+    },{
+      "name": "diagnose",
+      "enable": true,
+      "shell": "ros2 launch diagnose tiangong2.0_plus.launch.py",
+      "boot_start": true
+    },{
+      "name": "disk_manager",
+      "enable": true,
+      "shell": "ros2 launch utils disk_manager.py",
+      "boot_start": true
+    },{
+      "name": "bag_record",
+      "enable": true,
+      "shell": "ros2 launch utils record_trigger.py",
+      "boot_start": true
+    },{
+      "name": "body_control",
+      "enable": true,
+      "start_delay_s": 2,
+      "shell": "ros2 launch body_control body_no_sbus.launch.py",
+      "boot_start": false,
+      "ready_topic": "bodycontrol_state",
+      "ready_timeout": 20
+    },{
+      "name": "motion",
+      "enable": true,
+      "motion_type": "motion_control",
+      "shell": "ros2 launch motion_control motion.py"
+    },{
+      "name": "motion",
+      "enable": true,
+      "motion_type": "rl_control",
+      "shell": "ros2 run rl_control rl_control_node",
+      "shell2": "ros2 run rl_control_new rl_control_node",
+      "shell1": "ros2 launch motioncontrol_component motioncontrol_component_launch.py"
+    }
+  ],
+  "trigger": [
+    {
+      "type": "OnInitStart",
+      "enable": true,
+      "action": [
+        { "audio_file": "kaijiqidong.mp3" }
+      ]
+    },
+    {
+      "type": "OnInitFinish",
+      "enable": true,
+      "action": [
+        { "power_light": "PowerOnFinish" },
+        { "power_light": "ServiceStart" }
+      ]
+    },
+    {
+      "type": "OnNodeState",
+      "enable": true,
+      "topic": "power_board_state",
+      "value": [ "0", "1" ],
+      "action": [
+        { "power_light": "PowerOnFinish" }
+      ]
+    },
+    {
+      "type": "OnNodeState",
+      "enable": true,
+      "topic": "bodycontrol_state",
+      "value": [ "0", "1" ],
+      "sleep_time_ms": 30000,
+      "condition": [
+        { "robot_status": "!=48vOff" }
+      ],
+      "stop_proc": [ "motion" ],
+      "start_proc": [ "motion" ],
+      "action": [
+        { "robot_status": "Running" }
+      ]
+    },
+    {
+      "type": "OnRobotStatusChanged",
+      "enable": true,
+      "value": [ "", "48vOff" ],
+      "value1": [ "Running", "48vOff" ],
+      "stop_proc": [ "motion", "body_control" ],
+      "action": [
+        { "audio_file": "guzhang.mp3" },
+        { "power_light": "DeviceFaultOccur" }
+      ]
+    },
+    {
+      "type": "OnRobotStatusChanged",
+      "enable": true,
+      "value": [ "", "Running" ],
+      "action": [
+        { "power_light1": "ServiceFinish" },
+        { "power_light": "SelfCheckSuccess" },
+        { "audio_file": "chenggong.wav" }
+      ]
+    },
+    {
+      "type": "OnRobotStatusChanged",
+      "enable": true,
+      "value": [ "", "Initing" ],
+      "count": -1,
+      "action": [
+        { "audio_file": "zijianguocheng.mp3" }
+      ]
+    },
+    {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "A",
+      "value": [ "", "1" ],
+      "condition": [
+        { "robot_status": "!=Running" },
+        { "robot_status": "!=48vOff" }
+      ],
+      "start_proc": [ "body_control" ],
+      "action": [
+        { "power_light": "ServiceFinish" },
+        { "power_light": "SelfCheckStart" },
+        { "audio_file": "anjianyin.mp3" },
+        { "robot_status": "Initing" }
+      ],
+      "failed": [
+        { "audio_file": "guzhang.mp3" }
+      ]
+    },
+    {
+      "type": "OnBatteryCharging",
+      "enable": true,
+      "action": [
+        { "audio_file": "kaishichongdian.mp3" }
+      ]
+    }
+  ]
+}

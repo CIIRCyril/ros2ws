@@ -1,0 +1,2 @@
+source;share/diagnose/environment/ament_prefix_path.sh
+source;share/diagnose/environment/path.sh

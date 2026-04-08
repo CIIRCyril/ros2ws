@@ -1,0 +1,39 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from hric_msgs/srv/SetVisualLocMode.srv
+// generated code does not contain a copyright notice
+
+
+module hric_msgs {
+  module srv {
+    module SetVisualLocMode_Request_Constants {
+      const uint8 IDLE_MODE = 0;
+      const uint8 ODOM_MODE = 1;
+      const uint8 MAP_REFINE_MODE = 2;
+      const uint8 MAP_LOC_MODE = 3;
+    };
+    @verbatim (language="comment", text=
+      "视觉定位模式")
+    struct SetVisualLocMode_Request {
+      uint8 loc_mode;
+    };
+    module SetVisualLocMode_Response_Constants {
+      @verbatim (language="comment", text=
+        "错误码")
+      const uint32 NONE = 0;
+      const uint32 UNKNOWN = 200;
+    };
+    struct SetVisualLocMode_Response {
+      @verbatim (language="comment", text=
+        "表示服务调用是否成功")
+      boolean success;
+
+      @verbatim (language="comment", text=
+        "错误码")
+      uint32 error_code;
+
+      @verbatim (language="comment", text=
+        "失败原因")
+      string message;
+    };
+  };
+};

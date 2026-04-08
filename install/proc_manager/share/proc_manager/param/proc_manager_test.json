@@ -1,0 +1,15 @@
+{
+  "config": {
+    "enable_debug": false
+  },
+  "topic":[
+  ],
+  "proc": [
+    {
+      "name": "proc_manager_test",
+      "enable": true,
+      "shell": "ros2 launch proc_manager test1.launch.py",
+      "boot_start": true
+    }
+  ]
+}

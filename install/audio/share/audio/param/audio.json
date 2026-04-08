@@ -1,0 +1,52 @@
+{
+  "config": {
+    "config_file": "/home/ubuntu/data/param/audio_config.txt"
+  },
+  "topic":[
+    {
+      "name": "/sbus_data/event",
+      "msgtype": "bodyctrl_msgs::msg::SbusData"
+    }
+  ],
+  "proc": [
+  ],
+  "trigger": [
+     {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "G",
+      "value": [ "", "-1" ],
+      "action": [
+        { "play_audio_index": "-1" }
+      ]
+    },
+    {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "G",
+      "value": [ "", "0" ],
+      "action": [
+        { "stop_play_audio": "true" }
+      ]
+    },
+    {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "F",
+      "value": [ "", "-1" ],
+      "action": [
+        { "change_audio_index": "next" }
+      ]
+    },
+    {
+      "type": "OnJoyButtonPressed",
+      "enable": true,
+      "button": "F",
+      "value": [ "", "1" ],
+      "action": [
+        { "change_audio_index": "previous" }
+      ]
+    }
+  ]
+}
+

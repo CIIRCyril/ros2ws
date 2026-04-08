@@ -1,0 +1,12 @@
+<launch>
+
+  <param name="bluetooth_server_mode" type="string" value="ble" />
+  <param name="bluetooth_log_level" type="string" value="error" />
+
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager_bluetooth"  args="manager" output="screen"/>
+  <node pkg="nodelet" type="nodelet" name="BluetoothNodelet" args="load BluetoothNodelet nodelet_manager_bluetooth" output="screen">
+    <param name="bluetooth_server_mode" type="string" value="ble" />
+  </node>
+
+</launch>
+

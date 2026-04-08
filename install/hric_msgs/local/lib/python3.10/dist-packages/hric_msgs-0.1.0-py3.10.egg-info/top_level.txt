@@ -1,0 +1,1 @@
+hric_msgs

@@ -1,0 +1,22 @@
+auto_init: true
+enable_check_ready: true
+net_card_name: "enp4s0"
+
+enable_arms: true
+enable_legs: true
+enable_imu: true
+enable_hands: true
+enable_6dof: true
+enable_head: true
+enable_waist: true
+enable_waist_home: true
+enable_head_home: true
+enable_power: false
+
+selfMotor_idle_current: 0.3
+
+# 0 - standard, 1 - extended, 2 - time_sharing_mixed
+slave_mode:
+  - 0   # left_leg
+  - 0   # right_leg
+  - 0   # xsens_imu

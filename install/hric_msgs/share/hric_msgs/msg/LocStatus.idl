@@ -1,0 +1,50 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from hric_msgs/msg/LocStatus.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/PoseStamped.idl"
+
+module hric_msgs {
+  module msg {
+    module LocStatus_Constants {
+      @verbatim (language="comment", text=
+        "状态码" "\n"        "空闲状态， 不能导航")
+      const uint8 IDLE = 100;
+      @verbatim (language="comment", text=
+        "初始化中， 不能导航")
+      const uint8 INITIALIZING = 101;
+      @verbatim (language="comment", text=
+        "正常状态")
+      const uint8 RUNNING = 102;
+      const uint8 WEAK = 103;
+      @verbatim (language="comment", text=
+        "（不能导航）")
+      const uint8 LOST = 104;
+      @verbatim (language="comment", text=
+        "（传感器数据异常、初始化失败，不能导航）")
+      const uint8 BLOCKED = 105;
+      @verbatim (language="comment", text=
+        "错误码")
+      const uint32 NONE = 0;
+      const uint32 UNKNOWN = 200;
+      @verbatim (language="comment", text=
+        "TF错误")
+      const uint32 TF_ERROR = 201;
+      @verbatim (language="comment", text=
+        "传感器异常")
+      const uint32 SENSOR_ERROR = 202;
+      @verbatim (language="comment", text=
+        "重定位失败")
+      const uint32 RELOCALIZATION_ERROR = 203;
+    };
+    struct LocStatus {
+      uint8 status;
+
+      double confidence;
+
+      uint32 error_code;
+
+      geometry_msgs::msg::PoseStamped pose;
+    };
+  };
+};

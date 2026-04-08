@@ -1,0 +1,25 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from monitor_msgs/msg/ProcData.msg
+// generated code does not contain a copyright notice
+
+#include "monitor_msgs/msg/ProcCpuData.idl"
+#include "monitor_msgs/msg/ProcIoData.idl"
+#include "monitor_msgs/msg/ProcMemData.idl"
+
+module monitor_msgs {
+  module msg {
+    struct ProcData {
+      uint32 pid;
+
+      string name;
+
+      boolean active;
+
+      monitor_msgs::msg::ProcCpuData cpu_data;
+
+      monitor_msgs::msg::ProcIoData io_data;
+
+      monitor_msgs::msg::ProcMemData mem_data;
+    };
+  };
+};

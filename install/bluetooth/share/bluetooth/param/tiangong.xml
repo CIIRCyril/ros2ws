@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<Data>
+  <robot id="10000" name="tinayi" date="0000-00-00" desp="robot" type="tiangong-lite"></robot>
+
+  <topic name="/BodyControl/motor_state" msgtype="bodyctrl_msgs::MotorStatusMsg" enable="1" simulated="0" />
+  <topic name="/BodyControl/imu" msgtype="bodyctrl_msgs::Imu" enable="1" simulated="0" />
+  <topic name="/sbus_data" msgtype="sensor_msgs::Joy" enable="1" simulated="0" />
+  <topic name="/BodyControl/power_board_key_status" msgtype="bodyctrl_msgs::PowerBoardKeyStatus" enable="1" simulated="0" />
+  <topic name="/BodyControl/power_status" msgtype="bodyctrl_msgs::PowerStatus" enable="1" simulated="0" />
+  <topic name="/alarm" msgtype="bodyctrl_msgs::ExceptionArray" enable="1" simulated="0" />
+
+  <device id="15" name="motor1" type="motor" desp="左髋关节侧展" topic="/BodyControl/motor_state"  index="0" canid="1"/>
+  <device id="16" name="motor2" type="motor" desp="左髋关节周转" topic="/BodyControl/motor_state"  index="0" canid="2"/>
+  <device id="17" name="motor3" type="motor" desp="左髋关节俯仰" topic="/BodyControl/motor_state"  index="0" canid="3"/>
+  <device id="18" name="motor4" type="motor" desp="左膝关节俯仰" topic="/BodyControl/motor_state"  index="0" canid="4"/>
+  <device id="19" name="motor5" type="motor" desp="左踝关节俯仰" topic="/BodyControl/motor_state"  index="0" canid="5"/>
+  <device id="20" name="motor6" type="motor" desp="左踝关节周转" topic="/BodyControl/motor_state"  index="0" canid="6"/>
+
+  <device id="5" name="motor7" type="motor" desp="右髋关节侧展" topic="/BodyControl/motor_state"  index="0" canid="7"/>
+  <device id="6" name="motor8" type="motor" desp="右髋关节周转" topic="/BodyControl/motor_state"  index="0" canid="8"/>
+  <device id="7" name="motor9" type="motor" desp="右髋关节俯仰" topic="/BodyControl/motor_state"  index="0" canid="9"/>
+  <device id="8" name="motor10" type="motor" desp="右膝关节俯仰" topic="/BodyControl/motor_state"  index="0" canid="10"/>
+  <device id="9" name="motor11" type="motor" desp="右踝关节俯仰" topic="/BodyControl/motor_state"  index="0" canid="11"/>
+  <device id="10" name="motor12" type="motor" desp="右踝关节周转" topic="/BodyControl/motor_state"  index="0" canid="12"/>
+
+  <device id="11" name="motor13" type="motor" desp="左肩关节俯仰" topic="/BodyControl/motor_state"  index="0" canid="13"/>
+  <device id="12" name="motor14" type="motor" desp="左肩关节周转" topic="/BodyControl/motor_state"  index="0" canid="14"/>
+  <device id="13" name="motor15" type="motor" desp="左肩关节侧展" topic="/BodyControl/motor_state"  index="0" canid="15"/>
+
+  <device id="1" name="motor16" type="motor" desp="右肩关节俯仰" topic="/BodyControl/motor_state"  index="0" canid="16"/>
+  <device id="2" name="motor17" type="motor" desp="右肩关节周转" topic="/BodyControl/motor_state"  index="0" canid="17"/>
+  <device id="3" name="motor18" type="motor" desp="右肩关节侧展" topic="/BodyControl/motor_state"  index="0" canid="18"/>
+
+  <device id="14" name="motor23" type="motor" desp="左肘关节侧展" topic="/BodyControl/motor_state"  index="0" canid="23"/>
+  <device id="4" name="motor24" type="motor" desp="右肘关节侧展" topic="/BodyControl/motor_state"  index="0" canid="24"/>
+
+  <device id="21" name="power_board" type="power" desp="power status">
+    <topic name="/BodyControl/power_status" />
+    <topic name="/BodyControl/power_board_key_status" />
+  </device>
+  <device id="22" name="switch" type="switch" desp="switch">
+    <topic name="/BodyControl/power_board_key_status" />
+  </device>
+
+  <device id="30" name="x86"   type="system" remote="0" ip="192.168.41.1" desp="x86 system" user="ubuntu" pwd="123" />
+
+  <device id="50" name="battery" type="battery" desp="48V" topic="/BodyControl/power_status" />
+  <device id="60" name="remote_control" type="remote_control" desp="remote control" topic="/sbus_data" />
+  <device id="71" name="imu" type="imu" desp="imu" topic="/BodyControl/imu" />
+
+  <config key="status_update_interval" val="1000"></config>
+  <config key="web_dir" val="web/dist"></config>
+  <config key="log_level" val="1"></config>
+
+  <config key="enable_auto_update_topic" val="1"></config>
+  <config key="enable_auto_update_alarm" val="1"></config>
+  <config key="enable_auto_update_battery" val="1"></config>
+  <config key="enable_auto_update_chassis" val="0"></config>
+  <config key="enable_auto_update_imu" val="1"></config>
+  <config key="enable_auto_update_motor" val="1"></config>
+  <config key="enable_auto_update_power" val="1"></config>
+  <config key="enable_auto_update_radar" val="1"></config>
+  <config key="enable_auto_update_switch" val="1"></config>
+  <config key="enable_auto_update_system" val="1"></config>
+  <config key="enable_auto_update_topic" val="1"></config>
+  <config key="enable_auto_update_version" val="1"></config>
+</Data>
+

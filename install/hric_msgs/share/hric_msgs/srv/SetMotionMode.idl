@@ -1,0 +1,38 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from hric_msgs/srv/SetMotionMode.srv
+// generated code does not contain a copyright notice
+
+
+module hric_msgs {
+  module srv {
+    module SetMotionMode_Request_Constants {
+      const uint8 START = 0;
+      const uint8 STOP = 1;
+      const uint8 ZERO = 2;
+      const uint8 STAND = 3;
+      const uint8 WALK = 4;
+      const uint8 RUN = 5;
+    };
+    @verbatim (language="comment", text=
+      "运动模式")
+    struct SetMotionMode_Request {
+      @verbatim (language="comment", text=
+        "导航之前请求walk模式，导航结束请求stand模式" "\n"
+        "请求切换的运动模式-> 0: start, 1: stop, 2: zero, 3: stand, 4: walk, 5: run")
+      uint8 walk_mode_request;
+
+      @verbatim (language="comment", text=
+        "walk是否需要摆臂")
+      boolean is_need_swing_arm;
+    };
+    struct SetMotionMode_Response {
+      @verbatim (language="comment", text=
+        "表示服务调用是否成功")
+      boolean success;
+
+      @verbatim (language="comment", text=
+        "错误码")
+      uint32 error_code;
+    };
+  };
+};

@@ -1,0 +1,4 @@
+# 暂停当前的音频播放任务。
+
+string SERVICE_NAME = /audio_play/pause
+

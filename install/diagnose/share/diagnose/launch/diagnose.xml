@@ -1,0 +1,7 @@
+<launch>
+  <node_container pkg="rclcpp_components" exec="component_container" name="image_container" namespace="">
+    <composable_node pkg="diagnose" plugin="debugger::DebuggerNodelet" name="diagnose_node" namespace="">
+      <param name="xml_config_file" value="param/tiangong_lite_ros2.xml" />
+    </composable_node>
+  </node_container>
+</launch>

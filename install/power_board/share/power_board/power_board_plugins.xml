@@ -1,0 +1,6 @@
+<library path="lib/libpower_board">
+  <class name="power_board/PowerBoardNodelet" type="com::xhumanoid::PowerBoardNodelet" base_class_type="nodelet::Nodelet">
+  <description>power_board nodelet</description>
+  </class>
+</library>
+

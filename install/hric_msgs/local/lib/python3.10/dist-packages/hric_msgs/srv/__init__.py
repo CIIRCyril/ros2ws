@@ -1,0 +1,11 @@
+from hric_msgs.srv._list_markers import ListMarkers  # noqa: F401
+from hric_msgs.srv._mark_at_pose import MarkAtPose  # noqa: F401
+from hric_msgs.srv._mark_here import MarkHere  # noqa: F401
+from hric_msgs.srv._operate_marker import OperateMarker  # noqa: F401
+from hric_msgs.srv._relocate import Relocate  # noqa: F401
+from hric_msgs.srv._set_goal import SetGoal  # noqa: F401
+from hric_msgs.srv._set_motion_mode import SetMotionMode  # noqa: F401
+from hric_msgs.srv._set_motion_number import SetMotionNumber  # noqa: F401
+from hric_msgs.srv._set_visual_loc_mode import SetVisualLocMode  # noqa: F401
+from hric_msgs.srv._update_marker import UpdateMarker  # noqa: F401
+from hric_msgs.srv._visual_relocate import VisualRelocate  # noqa: F401
