@@ -1,3 +1,76 @@
+# TODO List
+
+- [✅] Operate ROS2 from remote computer (Rviz,Rqt etc.)
+- [ ] Implement czech chatbot to the robot
+- [ ] Implement inverse kiematics to control arms
+- [ ] Implement 2D and 3D vision to the robot
+- [ ] Train RL policies for walking and manipulation in the simulator
+- [ ] Implement native VLA to the robot
+- [ ] Implement custom VLA to the robot
+- [ ] Implement iChores architecture
+- [ ] Develop and test Chatbot demo
+- [ ] Develop and test Walking sequence from code demo
+- [ ] Develop and test Name visualiy recognize objects demo
+- [ ] Develop and test Reach object demo based on IK solver
+- [ ] Develop and test Reach object demo based on pretrained RL policy
+- [ ] Develop and test Pick and place demo
+- [ ] Develop and test Locomanipulation demo 
+
+# How to operate Cyril
+
+## Turning on
+
+1.Press battery button (left to Red emergency switch) - it will turn red.
+
+2. Pres shortly the power button (right to red emergency switch) - the fan will start and robots boots 1 minute with the sound at the end)
+
+3. Click the emergency button, the power button becomes green
+
+## Remote control operation
+
+1. Press A button and wait 20 sec to finish self check procedure (the sound played and the T logo becomes blue)
+2. Press D button - legs will move to calibrate position
+3. Move robot to the ground with loose leashes, hold the robot neck in stable position and wait 60 sec to calibrate IMU sensors (WARNING - robot is not stable at this stage and no sound played after calibration) 
+4. Long press A button and robot will stand (carefull about crank position over head). If the robot does not stand safely, press C, hold robot, move him up and repeat calibration procesure again)
+5. If robot stays, push G to the left and back to start walking mode and use joystick (very gently) to walk
+6. Press A to stop walking mode and stay. 
+7. Press A to start predefined motion. Cycle motion library with B press n times and A to activate
+8. Move F to up postion and press A to activate predefined voices, with B n times for cycling voice output.
+
+
+
+## Operational mode
+
+1. To start manually, please ensure that the auto-start function has been turned
+off first.
+
+sudo systemctl stop proc_manager.service
+
+
+2. First, open the first terminal and enter the following commands in sequence
+to start the master control node:
+
+sudo su
+
+cd ros2ws
+
+source install/setup.bash
+
+ros2 launch body_control body.launch.py
+
+
+
+
+## Shutdown
+1. Confirm that the robot has stopped and returned to the standing state.
+2. Press the "C" key on the remote control to make the robot freeze.
+3. Fix the robot on the bracket and lift it up.
+4. Press the emergency stop button.5.
+Long - press the on/off key for 6 seconds.
+6. Press the main on/off key. At this time, all status lights will be completely
+extinguished. First, briefly press and then immediately long - press the power key on
+
+
 ### LOG OF RANDOM FINDINGS
 
 ## How access robot remotely over ssh
