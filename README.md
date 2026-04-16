@@ -2,7 +2,7 @@
 
 - [✅] Operate ROS2 from remote computer (Rviz,Rqt etc.)
 - [ ] Implement czech chatbot to the robot
-- [ ] Implement inverse kiematics to control arms
+- [ ] Implement inverse kinematics to control arms
 - [ ] Implement 2D and 3D vision to the robot
 - [ ] Implement teleoperation for Walker robot (Sonic etc.)
 - [ ] Train RL policies for walking and manipulation in the simulator
@@ -11,7 +11,7 @@
 - [ ] Implement iChores architecture
 - [ ] Develop and test Chatbot demo
 - [ ] Develop and test Walking sequence from code demo
-- [ ] Develop and test Name visualiy recognize objects demo
+- [ ] Develop and test Name visually recognized objects demo
 - [ ] Develop and test Reach object demo based on IK solver
 - [ ] Develop and test Reach object demo based on pretrained RL policy
 - [ ] Develop and test Pick and place demo
