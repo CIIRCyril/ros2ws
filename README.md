@@ -4,6 +4,7 @@
 - [ ] Implement czech chatbot to the robot
 - [ ] Implement inverse kiematics to control arms
 - [ ] Implement 2D and 3D vision to the robot
+- [ ] Implement teleoperation for Walker robot (Sonic etc.)
 - [ ] Train RL policies for walking and manipulation in the simulator
 - [ ] Implement native VLA to the robot
 - [ ] Implement custom VLA to the robot
