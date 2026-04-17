@@ -74,6 +74,11 @@ extinguished. First, briefly press and then immediately long - press the power k
 
 ### LOG OF RANDOM FINDINGS
 
+## How access robot remotely - Web browser
+
+192.168.0.12:8080
+
+
 ## How access robot remotely over ssh
 
 Script to explore topics from external computer over ssh
@@ -95,6 +100,20 @@ Ubuntu machine
 /inspire_hand/state/left - States of fingers 
 
 /sbus_data - keypress from remote (joystick has continuos values from 0-1), buttons -1,1 and triggers -1;0;1
+
+## Chatbot
+
+ssh Nvidia2
+cd audio_ros2
+bash start_xunfei.sh
+second terminal
+ssh Nvidia2
+cd audio_ros2
+bash start_voice.sh
+third terminal
+ssh Nvidia2
+cd audio_ros2
+bash start_kaiwu.sh
 
 
 
