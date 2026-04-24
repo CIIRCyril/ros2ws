@@ -42,6 +42,12 @@
 
 ## Operational mode
 
+FAST METHOD 
+Run our scripts in 2 terminals
+sudo ~/ros2ws/scripts/start_debug.bash
+sudo ~/ros2ws/scripts/start_rl.bash
+
+SLOW METHOD
 1. To start manually, please ensure that the auto-start function has been turned
 off first.
 
@@ -49,7 +55,7 @@ sudo systemctl stop proc_manager.service
 
 
 2. First, open the first terminal and enter the following commands in sequence
-to start the master control node:
+to start the master control node: (OUR SCRIPT IS sudo ./ros2ws/scripts/manual_debug.)
 
 sudo su
 
@@ -59,7 +65,23 @@ source install/setup.bash
 
 ros2 launch body_control body.launch.py
 
+3. If you need to start the Motion Control - Reinforcement Learning node, 
+you should change it to enter the following commands in sequence:
+Plain Text
+sudo su
+cd ros2ws
+source install/setup.bash
+ros2 run rl_control rl_control_node
+You can start using the SDK for development and debugging at this time.
 
+4. Config for auto-start mode is here - also sounds and remote key mapping (DOES NOT WORK)
+/home/ubuntu/ros2ws/install/proc_manager/share/proc_manager/proc_manager.json
+
+
+## Enable debug over wifi
+
+FASTRTPS_DEFAULT_PROFILES_FILE: DDS configuration file. By default, using 
+Wi-Fi for DDS communication debugging is prohibited
 
 
 ## Shutdown

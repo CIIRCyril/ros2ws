@@ -14,7 +14,7 @@ import argparse
 from typing import List, Tuple, Optional
 
 # SSH Configuration
-SSH_HOST = "192.168.0.12"
+SSH_HOST = "192.168.41.1"
 SSH_USER = "ubuntu"
 SSH_PASS = "123"
 
