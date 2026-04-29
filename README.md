@@ -1,6 +1,9 @@
 # TODO List
 
 - [✅] Operate ROS2 from remote computer (Rviz,Rqt etc.)
+- [✅] Python GUI to control head
+- [✅] Python GUI to control hands
+- [✅] Python GUI for remote control
 - [ ] Implement czech chatbot to the robot
 - [ ] Implement inverse kinematics to control arms
 - [ ] Implement 2D and 3D vision to the robot
@@ -136,6 +139,9 @@ third terminal
 ssh Nvidia2
 cd audio_ros2
 bash start_kaiwu.sh
+
+## Where rosbag is configured 
+/home/ubuntu/ros2ws/install/utils/lib/utils/bag_record/config
 
 
 
