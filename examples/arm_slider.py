@@ -7,7 +7,11 @@ Motor IDs:
   Right arm: 21-27  (shoulder pitch/roll/yaw, elbow, wrist yaw/pitch/roll)
   Waist    : 31
 
-Arm motors (11-17, 21-27) are commanded via /arm/cmd_ctrl (CmdMotorCtrl – MIT mode).
+Arm control modes:
+  MIT      — /arm/cmd_ctrl  (CmdMotorCtrl)         kp/kd PD position control
+  Position — /arm/cmd_pos   (CmdSetMotorPosition)  trapezoidal profile to target pos
+  Speed    — /arm/cmd_spd   (CmdSetMotorSpeed)     constant velocity per joint
+
 Waist motor (31) is commanded via /waist/cmd_pos (CmdSetMotorPosition).
 
 IMPORTANT: The rl_control node takes over arm commands during locomotion.
@@ -24,9 +28,15 @@ from rclpy.node import Node
 from bodyctrl_msgs.msg import (
     CmdMotorCtrl, MotorCtrl,
     CmdSetMotorPosition, SetMotorPosition,
+    CmdSetMotorSpeed, SetMotorSpeed,
     MotorStatusMsg,
 )
 from hric_msgs.srv import SetMotionMode
+
+# Arm control modes
+MODE_MIT      = "MIT"
+MODE_POSITION = "Position"
+MODE_SPEED    = "Speed"
 
 
 ERROR_MAP = {
@@ -74,11 +84,13 @@ class ArmSliderGUI(Node):
         super().__init__('arm_slider_gui')
 
         # publishers
-        self.arm_pub = self.create_publisher(CmdMotorCtrl, '/arm/cmd_ctrl', 10)
-        self.waist_pub = self.create_publisher(CmdSetMotorPosition, '/waist/cmd_pos', 10)
+        self.arm_mit_pub  = self.create_publisher(CmdMotorCtrl,        '/arm/cmd_ctrl', 10)
+        self.arm_pos_pub  = self.create_publisher(CmdSetMotorPosition,  '/arm/cmd_pos',  10)
+        self.arm_spd_pub  = self.create_publisher(CmdSetMotorSpeed,     '/arm/cmd_spd',  10)
+        self.waist_pub    = self.create_publisher(CmdSetMotorPosition,  '/waist/cmd_pos', 10)
 
         # subscribers
-        self.create_subscription(MotorStatusMsg, '/arm/status', self._arm_status_cb, 10)
+        self.create_subscription(MotorStatusMsg, '/arm/status',   self._arm_status_cb,   10)
         self.create_subscription(MotorStatusMsg, '/waist/status', self._waist_status_cb, 10)
 
         # service client to stop motion / release arm control
@@ -91,14 +103,28 @@ class ArmSliderGUI(Node):
         self.right_ids = list(range(21, 28))    # 21-27
         self.waist_ids = [31]
 
-        # desired positions (radians)
+        # current arm control mode
+        self.arm_mode = MODE_MIT
+
+        # desired positions (radians) — used by MIT and Position modes
         self.left_pos  = [0.0] * 7
         self.right_pos = [0.0] * 7
         self.waist_pos = [0.0]
 
+        # desired speeds (rpm) per joint — used by Speed mode
+        self.left_spd  = [0.0] * 7
+        self.right_spd = [0.0] * 7
+
         # MIT control parameters
-        self.arm_kp = 100.0
-        self.arm_kd = 5.0
+        self.arm_kp = 20.0
+        self.arm_kd = 4.0
+
+        # Position-mode parameters (shared across all joints)
+        self.arm_pos_spd = 30.0   # rpm — trapezoidal profile speed
+        self.arm_pos_cur = 8.0    # A   — current limit
+
+        # Speed-mode parameter (shared current limit)
+        self.arm_spd_cur = 8.0    # A
 
         # waist speed
         self.waist_speed = 0.2
@@ -121,7 +147,7 @@ class ArmSliderGUI(Node):
         self.root = tk.Tk()
         self.root.title("Arm + Waist Control")
 
-        # ── top bar: motion control ──────────────────────────────────────────
+        # ── top bar: motion control + mode selector ──────────────────────────
         top = tk.Frame(self.root, bg='#222')
         top.pack(fill='x', padx=4, pady=4)
 
@@ -137,6 +163,17 @@ class ArmSliderGUI(Node):
             bg='#222', fg='#ffff88', font=('Courier', 9), anchor='w',
         ).pack(side='left', padx=8)
 
+        # mode selector
+        mode_frame = tk.LabelFrame(top, text="Arm mode", bg='#222', fg='white')
+        mode_frame.pack(side='left', padx=16, pady=4)
+        self._mode_var = tk.StringVar(value=MODE_MIT)
+        for mode in (MODE_MIT, MODE_POSITION, MODE_SPEED):
+            tk.Radiobutton(
+                mode_frame, text=mode, variable=self._mode_var, value=mode,
+                bg='#222', fg='white', selectcolor='#555',
+                command=self._on_mode_change,
+            ).pack(side='left', padx=4)
+
         # ── three column layout ───────────────────────────────────────────────
         cols = tk.Frame(self.root)
         cols.pack(padx=4, pady=4)
@@ -151,9 +188,11 @@ class ArmSliderGUI(Node):
         waist_frame.grid(row=0, column=2, padx=6, pady=4, sticky='n')
 
         # left arm
-        self.left_sliders, self.left_status = self._build_arm_section(
+        (self.left_sliders, self.left_spd_sliders,
+         self.left_status) = self._build_arm_section(
             left_frame, LEFT_ARM_NAMES, ARM_LIMITS,
-            setter=lambda i, v: self._set_left(i, v)
+            pos_setter=lambda i, v: self._set_left_pos(i, v),
+            spd_setter=lambda i, v: self._set_left_spd(i, v),
         )
         tk.Button(
             left_frame, text="ZERO LEFT ARM",
@@ -161,55 +200,147 @@ class ArmSliderGUI(Node):
         ).pack(fill='x', padx=4, pady=(4, 2))
 
         # right arm
-        self.right_sliders, self.right_status = self._build_arm_section(
+        (self.right_sliders, self.right_spd_sliders,
+         self.right_status) = self._build_arm_section(
             right_frame, RIGHT_ARM_NAMES, ARM_LIMITS,
-            setter=lambda i, v: self._set_right(i, v)
+            pos_setter=lambda i, v: self._set_right_pos(i, v),
+            spd_setter=lambda i, v: self._set_right_spd(i, v),
         )
         tk.Button(
             right_frame, text="ZERO RIGHT ARM",
             command=self._zero_right,
         ).pack(fill='x', padx=4, pady=(4, 2))
 
-        # shared kp / kd below the arm columns
-        gains_frame = ttk.LabelFrame(cols, text="MIT Gains (both arms)")
-        gains_frame.grid(row=1, column=0, columnspan=2, padx=6, pady=4, sticky='ew')
+        # ── shared params panel (row 1, spans both arm columns) ──────────────
+        self._params_frame = ttk.LabelFrame(cols, text="Arm parameters")
+        self._params_frame.grid(row=1, column=0, columnspan=2, padx=6, pady=4, sticky='ew')
 
-        tk.Label(gains_frame, text="kp (position gain)").pack()
+        # MIT gains sub-frame
+        self._mit_frame = tk.Frame(self._params_frame)
+        self._mit_frame.pack(fill='x')
+
+        tk.Label(self._mit_frame, text="kp  (position gain, N·m/rad)").pack()
         self._kp_slider = tk.Scale(
-            gains_frame, from_=0.0, to=500.0, resolution=1.0,
+            self._mit_frame, from_=0.0, to=500.0, resolution=1.0,
             orient=tk.HORIZONTAL, length=360, command=self._set_kp,
         )
         self._kp_slider.set(self.arm_kp)
         self._kp_slider.pack()
 
-        tk.Label(gains_frame, text="kd (damping)").pack()
+        tk.Label(self._mit_frame, text="kd  (damping, N·m·s/rad)").pack()
         self._kd_slider = tk.Scale(
-            gains_frame, from_=0.0, to=50.0, resolution=0.1,
+            self._mit_frame, from_=0.0, to=50.0, resolution=0.1,
             orient=tk.HORIZONTAL, length=360, command=self._set_kd,
         )
         self._kd_slider.set(self.arm_kd)
         self._kd_slider.pack()
 
+        # Position-mode params sub-frame
+        self._pos_params_frame = tk.Frame(self._params_frame)
+
+        tk.Label(self._pos_params_frame, text="Profile speed  (rpm)").pack()
+        self._pos_spd_slider = tk.Scale(
+            self._pos_params_frame, from_=0.0, to=200.0, resolution=1.0,
+            orient=tk.HORIZONTAL, length=360,
+            command=lambda v: setattr(self, 'arm_pos_spd', float(v)),
+        )
+        self._pos_spd_slider.set(self.arm_pos_spd)
+        self._pos_spd_slider.pack()
+
+        tk.Label(self._pos_params_frame, text="Current limit  (A)").pack()
+        self._pos_cur_slider = tk.Scale(
+            self._pos_params_frame, from_=0.0, to=30.0, resolution=0.1,
+            orient=tk.HORIZONTAL, length=360,
+            command=lambda v: setattr(self, 'arm_pos_cur', float(v)),
+        )
+        self._pos_cur_slider.set(self.arm_pos_cur)
+        self._pos_cur_slider.pack()
+
+        # Speed-mode params sub-frame
+        self._spd_params_frame = tk.Frame(self._params_frame)
+
+        tk.Label(self._spd_params_frame, text="Current limit  (A)").pack()
+        self._spd_cur_slider = tk.Scale(
+            self._spd_params_frame, from_=0.0, to=30.0, resolution=0.1,
+            orient=tk.HORIZONTAL, length=360,
+            command=lambda v: setattr(self, 'arm_spd_cur', float(v)),
+        )
+        self._spd_cur_slider.set(self.arm_spd_cur)
+        self._spd_cur_slider.pack()
+
         # waist
         self._build_waist_section(waist_frame)
 
-    def _build_arm_section(self, parent, names, limits, setter):
-        sliders = []
+        # apply initial mode visibility
+        self._on_mode_change()
+
+    def _build_arm_section(self, parent, names, limits, pos_setter, spd_setter):
+        """Build per-joint rows for one arm.
+
+        Each row contains:
+          - a position slider (MIT / Position modes)
+          - a speed slider    (Speed mode, hidden initially)
+          - a status label
+        """
+        pos_sliders = []
+        spd_sliders = []
         status_labels = []
         for i, (name, (lo, hi)) in enumerate(zip(names, limits)):
             tk.Label(parent, text=name, anchor='w', width=18).pack(anchor='w', padx=4)
-            s = tk.Scale(
+
+            ps = tk.Scale(
                 parent, from_=lo, to=hi, resolution=0.01,
                 orient=tk.HORIZONTAL, length=300,
-                command=lambda v, idx=i: setter(idx, v),
+                command=lambda v, idx=i: pos_setter(idx, v),
             )
-            s.pack()
-            sliders.append(s)
+            ps.pack()
+            pos_sliders.append(ps)
+
+            ss = tk.Scale(
+                parent, from_=-200.0, to=200.0, resolution=1.0,
+                orient=tk.HORIZONTAL, length=300,
+                label=f"{name} spd (rpm)",
+                command=lambda v, idx=i: spd_setter(idx, v),
+            )
+            # not packed yet — shown only in Speed mode
+            spd_sliders.append(ss)
 
             lbl = tk.Label(parent, text="--", font=("Courier", 9), anchor='w', width=55)
             lbl.pack(fill='x', padx=4, pady=(0, 4))
             status_labels.append(lbl)
-        return sliders, status_labels
+
+        return pos_sliders, spd_sliders, status_labels
+
+    def _on_mode_change(self):
+        mode = self._mode_var.get()
+        self.arm_mode = mode
+
+        # swap params panel
+        self._mit_frame.pack_forget()
+        self._pos_params_frame.pack_forget()
+        self._spd_params_frame.pack_forget()
+
+        if mode == MODE_MIT:
+            self._mit_frame.pack(fill='x')
+        elif mode == MODE_POSITION:
+            self._pos_params_frame.pack(fill='x')
+        else:  # Speed
+            self._spd_params_frame.pack(fill='x')
+
+        # show/hide per-joint position vs speed sliders
+        for ps, ss in zip(self.left_sliders,  self.left_spd_sliders):
+            self._toggle_joint_sliders(ps, ss, mode)
+        for ps, ss in zip(self.right_sliders, self.right_spd_sliders):
+            self._toggle_joint_sliders(ps, ss, mode)
+
+    @staticmethod
+    def _toggle_joint_sliders(pos_slider, spd_slider, mode):
+        if mode == MODE_SPEED:
+            pos_slider.pack_forget()
+            spd_slider.pack()
+        else:
+            spd_slider.pack_forget()
+            pos_slider.pack()
 
     def _build_waist_section(self, parent):
         tk.Label(parent, text="Waist yaw").pack()
@@ -243,11 +374,17 @@ class ArmSliderGUI(Node):
     # Setters
     # -------------------------------------------------------------------------
 
-    def _set_left(self, i, v):
+    def _set_left_pos(self, i, v):
         self.left_pos[i] = float(v)
 
-    def _set_right(self, i, v):
+    def _set_right_pos(self, i, v):
         self.right_pos[i] = float(v)
+
+    def _set_left_spd(self, i, v):
+        self.left_spd[i] = float(v)
+
+    def _set_right_spd(self, i, v):
+        self.right_spd[i] = float(v)
 
     def _set_waist(self, i, v):
         self.waist_pos[i] = float(v)
@@ -262,11 +399,17 @@ class ArmSliderGUI(Node):
         for i, s in enumerate(self.left_sliders):
             s.set(0.0)
             self.left_pos[i] = 0.0
+        for i, s in enumerate(self.left_spd_sliders):
+            s.set(0.0)
+            self.left_spd[i] = 0.0
 
     def _zero_right(self):
         for i, s in enumerate(self.right_sliders):
             s.set(0.0)
             self.right_pos[i] = 0.0
+        for i, s in enumerate(self.right_spd_sliders):
+            s.set(0.0)
+            self.right_spd[i] = 0.0
 
     def _zero_waist(self):
         self._waist_slider.set(0.0)
@@ -277,31 +420,16 @@ class ArmSliderGUI(Node):
     # -------------------------------------------------------------------------
 
     def _publish(self):
-        # arm cmd_ctrl (MIT mode)
         if all(self.left_initialized) and all(self.right_initialized):
-            msg = CmdMotorCtrl()
-            msg.cmds = []
-            for i, mid in enumerate(self.left_ids):
-                c = MotorCtrl()
-                c.name = mid
-                c.kp   = float(self.arm_kp)
-                c.kd   = float(self.arm_kd)
-                c.pos  = float(self.left_pos[i])
-                c.spd  = 0.0
-                c.tor  = 0.0
-                msg.cmds.append(c)
-            for i, mid in enumerate(self.right_ids):
-                c = MotorCtrl()
-                c.name = mid
-                c.kp   = float(self.arm_kp)
-                c.kd   = float(self.arm_kd)
-                c.pos  = float(self.right_pos[i])
-                c.spd  = 0.0
-                c.tor  = 0.0
-                msg.cmds.append(c)
-            self.arm_pub.publish(msg)
+            mode = self.arm_mode
+            if mode == MODE_MIT:
+                self._publish_mit()
+            elif mode == MODE_POSITION:
+                self._publish_pos()
+            else:
+                self._publish_spd()
 
-        # waist cmd_pos
+        # waist cmd_pos (always position mode)
         if all(self.waist_initialized):
             msg = CmdSetMotorPosition()
             msg.cmds = []
@@ -312,6 +440,65 @@ class ArmSliderGUI(Node):
             c.cur  = 8.0
             msg.cmds.append(c)
             self.waist_pub.publish(msg)
+
+    def _publish_mit(self):
+        msg = CmdMotorCtrl()
+        msg.cmds = []
+        for i, mid in enumerate(self.left_ids):
+            c = MotorCtrl()
+            c.name = mid
+            c.kp   = float(self.arm_kp)
+            c.kd   = float(self.arm_kd)
+            c.pos  = float(self.left_pos[i])
+            c.spd  = 0.0
+            c.tor  = 0.0
+            msg.cmds.append(c)
+        for i, mid in enumerate(self.right_ids):
+            c = MotorCtrl()
+            c.name = mid
+            c.kp   = float(self.arm_kp)
+            c.kd   = float(self.arm_kd)
+            c.pos  = float(self.right_pos[i])
+            c.spd  = 0.0
+            c.tor  = 0.0
+            msg.cmds.append(c)
+        self.arm_mit_pub.publish(msg)
+
+    def _publish_pos(self):
+        msg = CmdSetMotorPosition()
+        msg.cmds = []
+        for i, mid in enumerate(self.left_ids):
+            c = SetMotorPosition()
+            c.name = mid
+            c.pos  = float(self.left_pos[i])
+            c.spd  = float(self.arm_pos_spd)
+            c.cur  = float(self.arm_pos_cur)
+            msg.cmds.append(c)
+        for i, mid in enumerate(self.right_ids):
+            c = SetMotorPosition()
+            c.name = mid
+            c.pos  = float(self.right_pos[i])
+            c.spd  = float(self.arm_pos_spd)
+            c.cur  = float(self.arm_pos_cur)
+            msg.cmds.append(c)
+        self.arm_pos_pub.publish(msg)
+
+    def _publish_spd(self):
+        msg = CmdSetMotorSpeed()
+        msg.cmds = []
+        for i, mid in enumerate(self.left_ids):
+            c = SetMotorSpeed()
+            c.name = mid
+            c.spd  = float(self.left_spd[i])
+            c.cur  = float(self.arm_spd_cur)
+            msg.cmds.append(c)
+        for i, mid in enumerate(self.right_ids):
+            c = SetMotorSpeed()
+            c.name = mid
+            c.spd  = float(self.right_spd[i])
+            c.cur  = float(self.arm_spd_cur)
+            msg.cmds.append(c)
+        self.arm_spd_pub.publish(msg)
 
     # -------------------------------------------------------------------------
     # Status callbacks
