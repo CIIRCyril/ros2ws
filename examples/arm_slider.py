@@ -374,7 +374,7 @@ class ArmSliderGUI(Node):
         rclpy.spin_until_future_complete(self, future, timeout_sec=5.0)
         if future.done() and future.result() is not None:
             resp = future.result()
-            if resp.sucess:
+            if resp.success:
                 result = 'motion: STOPPED — arms released'
             else:
                 result = f'motion: STOP failed (err={resp.error_code})'
