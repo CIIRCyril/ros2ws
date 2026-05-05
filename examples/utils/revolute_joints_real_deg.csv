@@ -1,0 +1,34 @@
+Body Part,Joint Name,Joint ID,Range of Motion (°),Torque Coefficient (Nm/A),Max Rotational Speed (rpm),KP Range,KD Range,Rated Torque (Nm),Peak Torque (Nm),Applicable Models
+Head,Head Roll,1,"-26° ~ +26°",2.16,64,0~2000,0~300,3,9,Embodied Intelligence
+Head,Head Pitch,2,"-25° ~ +25°",2.16,64,0~2000,0~300,3,9,Embodied Intelligence
+Head,Head Yaw,3,"-90° ~ +90°",2.16,64,0~2000,0~300,3,9,Embodied Intelligence
+Waist,Waist Yaw,31,"-170° ~ +170°",3.207,88,0~2000,0~300,35,91,"Embodied Intelligence, Voice & Vision"
+Left Arm,Left Shoulder Pitch,11,"-170° ~ +170°",3.207,88,0~2000,0~300,35,91,All Series
+Left Arm,Left Shoulder Roll,12,"-15° ~ +150°",3.37,120,0~2000,0~300,20,60,All Series
+Left Arm,Left Shoulder Yaw,13,"-170° ~ +170°",2.43,73,0~2000,0~300,10,30,All Series
+Left Arm,Left Elbow Pitch,14,"-150° ~ +15°",2.43,73,0~2000,0~300,10,30,All Series
+Left Arm,Left Wrist Yaw,15,"-170° ~ +170°",1.71,146,0~2000,0~300,5,15,Embodied Intelligence
+Left Arm,Left Wrist Pitch,16,"-45° ~ +60°",2.16,72,0~2000,0~300,3,9,Embodied Intelligence
+Left Arm,Left Wrist Roll,17,"-95° ~ +75°",2.16,72,0~2000,0~300,3,9,Embodied Intelligence
+Right Arm,Right Shoulder Pitch,21,"-170° ~ +170°",3.207,88,0~2000,0~300,35,91,All Series
+Right Arm,Right Shoulder Roll,22,"-150° ~ +15°",3.37,120,0~2000,0~300,20,60,All Series
+Right Arm,Right Shoulder Yaw,23,"-170° ~ +170°",2.43,73,0~2000,0~300,10,30,All Series
+Right Arm,Right Elbow Pitch,24,"-150° ~ +15°",2.43,73,0~2000,0~300,10,30,All Series
+Right Arm,Right Wrist Yaw,25,"-170° ~ +170°",1.71,146,0~2000,0~300,5,15,Embodied Intelligence
+Right Arm,Right Wrist Pitch,26,"-45° ~ +60°",2.16,72,0~2000,0~300,3,9,Embodied Intelligence
+Right Arm,Right Wrist Roll,27,"-75° ~ +95°",2.16,72,0~2000,0~300,3,9,Embodied Intelligence
+Left Leg,Left Hip Roll,51,"-45° ~ +45°",2.3,125,0~2000,0~300,N/A,124,All Series
+Right Leg,Right Hip Roll,61,"-45° ~ +45°",2.3,125,0~2000,0~300,N/A,124,All Series
+Left Leg,Left Hip Pitch,52,"-160° ~ +120°",2,125,0~2000,0~300,N/A,300,All Series
+Right Leg,Right Hip Pitch,62,"-160° ~ +120°",2,125,0~2000,0~300,N/A,300,All Series
+Left Leg,Left Hip Yaw,53,"-60° ~ +60°",2.3,125,0~2000,0~300,N/A,124,All Series
+Right Leg,Right Hip Yaw,63,"-60° ~ +60°",2.3,125,0~2000,0~300,N/A,124,All Series
+Left Leg,Left Knee Pitch,54,"0° ~ +137°",2,125,0~2000,0~300,N/A,300,All Series
+Right Leg,Right Knee Pitch,64,"0° ~ +137°",2,125,0~2000,0~300,N/A,300,All Series
+Left Leg,Left Ankle Pitch,55,"-70° ~ +30°",2.6,128,0~2000,0~300,N/A,36,All Series
+Right Leg,Right Ankle Pitch,65,"-70° ~ +30°",2.6,128,0~2000,0~300,N/A,36,All Series
+Left Leg,Left Ankle Roll,56,"-30° ~ +30°",2.6,128,0~2000,0~300,N/A,36,All Series
+Right Leg,Right Ankle Roll,66,"-30° ~ +30°",2.6,128,0~2000,0~300,N/A,36,All Series
+Hand,Pinky / Ring / Middle / Index Fingers,1 / 2 / 3 / 4,"+19° ~ +176.7°",N/A,N/A,N/A,N/A,N/A,N/A,Embodied Intelligence
+Hand,Thumb Bending,5,"-13° ~ +53.6°",N/A,N/A,N/A,N/A,N/A,N/A,Embodied Intelligence
+Hand,Thumb Rotation,6,"+90° ~ +165°",N/A,N/A,N/A,N/A,N/A,N/A,Embodied Intelligence
