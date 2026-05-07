@@ -1,3 +1,19 @@
+# Our Code
+
+The `examples/` folder contains our custom scripts for controlling and debugging the robot.
+
+| Script | Description |
+|--------|-------------|
+| `arm_slider.py` | Tkinter GUI for directly controlling the robot's left/right arm and waist joints in MIT, position, or speed mode. |
+| `finger_slider.py` | Tkinter GUI for controlling both hands' finger positions and velocities, with open/close buttons and a random motion mode. |
+| `head_slider.py` | Tkinter GUI for controlling the robot head's roll, pitch, and yaw joints with live motor status feedback. |
+| `headwaist_slider.py` | Tkinter GUI for simultaneously controlling both the head (roll, pitch, yaw) and waist (yaw) joints with status feedback. |
+| `remote.py` | Tkinter GUI remote control that emulates the physical joystick by publishing SbusData messages, with push buttons, toggle switches, dual joysticks, motion mode selection, and custom action triggers. |
+| `remote2.py` | Extended version of `remote.py` with the same remote control GUI for the Walker robot, publishing SbusData messages at 20 Hz. |
+| `test_topics.py` | Minimal ROS2 node that subscribes to head status and hand state topics to verify they are active and publishing data. |
+| `manual_debug.bash` | Bash script that stops the auto-start service and launches the body control node manually for debugging. |
+| `start_rl.bash` | Bash script that launches the reinforcement learning control node (`rl_control_node`). |
+
 # TODO List
 
 - [✅] Operate ROS2 from remote computer (Rviz,Rqt etc.)
