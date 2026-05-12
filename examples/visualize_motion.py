@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Visualize motion1.txt from the rl_control package as a fullscreen time-series plot."""
+"""Visualize motion_1.txt from the rl_control package as a fullscreen time-series plot."""
 
 import os
 import numpy as np
@@ -33,8 +33,8 @@ def load_motion(path):
             # First token is the row index – skip it
             rows.append([float(v) for v in parts[1:]])
     data = np.array(rows)          # shape: (n_steps, n_cols)
-    timesteps = np.arange(1, len(data) + 1)
-    return timesteps, data
+    step_indices = np.arange(1, len(data) + 1)
+    return step_indices, data
 
 
 def main():
@@ -42,16 +42,17 @@ def main():
     if not os.path.isfile(motion_path):
         raise FileNotFoundError(f"Motion file not found: {motion_path}")
 
-    timesteps, data = load_motion(motion_path)
+    step_indices, data = load_motion(motion_path)
     n_cols = data.shape[1]
 
-    # Assign a distinct color to each column using a colormap
-    colors = cm.tab20(np.linspace(0, 1, n_cols))
+    # Assign a distinct color to each column.  tab20 provides 20 distinct
+    # colors; for files with more than 20 columns the palette wraps around.
+    colors = cm.tab20(np.linspace(0, 1, max(n_cols, 1)))
 
     fig, ax = plt.subplots(figsize=(16, 8))
     for col_idx in range(n_cols):
         ax.plot(
-            timesteps,
+            step_indices,
             data[:, col_idx],
             color=colors[col_idx],
             linewidth=0.8,
