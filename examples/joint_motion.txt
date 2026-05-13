@@ -1,0 +1,37 @@
+# Joint / Motor / Column index reference
+# col  — 0-based column index (motion file)
+# motor — hardware motor ID
+# joint  — joint name / label
+
+col  motor  joint
+---  -----  -----------------
+  0      1  Head Yaw
+  1      2  Head Pitch
+  2      3  Head Roll
+  3     11  L Shoulder Pitch
+  4     12  L Shoulder Roll
+  5     13  L Shoulder Yaw
+  6     14  L Elbow Pitch
+  7     15  L Wrist Yaw
+  8     16  L Wrist Pitch
+  9     17  L Wrist Roll
+ 10     21  R Shoulder Pitch
+ 11     22  R Shoulder Roll
+ 12     23  R Shoulder Yaw
+ 13     24  R Elbow Pitch
+ 14     25  R Wrist Yaw
+ 15     26  R Wrist Pitch
+ 16     27  R Wrist Roll
+ 17     31  Waist Yaw
+ 18     51  L Hip Roll
+ 19     52  L Hip Pitch
+ 20     53  L Hip Yaw
+ 21     54  L Knee Pitch
+ 22     55  L Ankle Pitch
+ 23     56  L Ankle Roll
+ 24     61  R Hip Roll
+ 25     62  R Hip Pitch
+ 26     63  R Hip Yaw
+ 27     64  R Knee Pitch
+ 28     65  R Ankle Pitch
+ 29     66  R Ankle Roll
