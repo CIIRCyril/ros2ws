@@ -20,6 +20,7 @@ Detailed documentation is maintained in the [`docs/`](docs/) folder.
 
 | File | Description |
 |------|-------------|
+| [docs/motion_control.md](docs/motion_control.md) | Motion control package overview — topics, services, motion modes, motor IDs, CLI commands, Python SDK examples, GUI tools, and configuration reference. |
 | [docs/hric_msgs.md](docs/hric_msgs.md) | Custom ROS 2 message/service/action definitions for the HRIC system (topics, services, actions for navigation, motion, and map-marker subsystems). |
 | [docs/bodyctrl_msgs.md](docs/bodyctrl_msgs.md) | Custom ROS 2 message/service definitions for the body control system (motor control, hand control, waist, IMU, force/torque sensors, power board, and remote input). |
 
