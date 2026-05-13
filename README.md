@@ -20,9 +20,23 @@ Detailed documentation is maintained in the [`docs/`](docs/) folder.
 
 | File | Description |
 |------|-------------|
-| [docs/motion_control.md](docs/motion_control.md) | Motion control package overview — topics, services, motion modes, motor IDs, CLI commands, Python SDK examples, GUI tools, and configuration reference. |
-| [docs/hric_msgs.md](docs/hric_msgs.md) | Custom ROS 2 message/service/action definitions for the HRIC system (topics, services, actions for navigation, motion, and map-marker subsystems). |
+| [docs/audio.md](docs/audio.md) | Audio playback node — plays robot voice files, reacts to remote-control button events, exposes play/pause/stop services. |
+| [docs/bluetooth.md](docs/bluetooth.md) | Bluetooth BLE server node — wireless connection between robot and external devices. |
+| [docs/body_control.md](docs/body_control.md) | Central hardware-abstraction node — controls all joints (arms, waist, head, legs), hands, IMU, and force/torque sensors over EtherCAT. |
 | [docs/bodyctrl_msgs.md](docs/bodyctrl_msgs.md) | Custom ROS 2 message/service definitions for the body control system (motor control, hand control, waist, IMU, force/torque sensors, power board, and remote input). |
+| [docs/diagnose.md](docs/diagnose.md) | Hardware diagnostics and firmware-upgrade node — supports multiple robot variants (Tiangong 2.0 Pro/Plus/Lite). |
+| [docs/hric_msgs.md](docs/hric_msgs.md) | Custom ROS 2 message/service/action definitions for the HRIC system (topics, services, actions for navigation, motion, and map-marker subsystems). |
+| [docs/lyre_msgs.md](docs/lyre_msgs.md) | Custom ROS 2 interfaces for the audio pipeline — ASR (speech recognition), TTS events, audio playback services, and LLM dialogue types. |
+| [docs/monitor_msgs.md](docs/monitor_msgs.md) | Custom ROS 2 message types for system-resource monitoring — CPU, memory, disk I/O, and per-process statistics. |
+| [docs/motion_control.md](docs/motion_control.md) | Motion control package overview — topics, services, motion modes, motor IDs, CLI commands, Python SDK examples, GUI tools, and configuration reference. |
+| [docs/power_board.md](docs/power_board.md) | Power management board node — battery status, power status, LED control, and board key-press events over serial. |
+| [docs/proc_manager.md](docs/proc_manager.md) | Process supervisor node — orchestrates startup/shutdown of all robot subsystems, audio cues, and SBUS-triggered actions. |
+| [docs/rl_control.md](docs/rl_control.md) | Reinforcement-learning locomotion controller — loads pre-trained policies and commands joint torques for bipedal walking. |
+| [docs/robot_action.md](docs/robot_action.md) | Web-based GUI application for recording, editing, and replaying custom robot action sequences (poses/motions). |
+| [docs/usb_sbus.md](docs/usb_sbus.md) | USB SBUS receiver node — decodes remote-control joystick/button input and publishes it as ROS 2 topics. |
+| [docs/utils.md](docs/utils.md) | Utility services — ROS bag recording, disk-space management, and system-resource monitoring (CPU/memory/I/O). |
+| [docs/xsys.md](docs/xsys.md) | Core system service node — exposes a ROS 2 service to retrieve the robot's unique hardware serial number. |
+| [docs/xsys_msgs.md](docs/xsys_msgs.md) | Custom ROS 2 service interface for system-level queries — `GetSerialNumber` service definition. |
 
 # TODO List
 
