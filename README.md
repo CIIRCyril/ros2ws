@@ -14,12 +14,24 @@ The `examples/` folder contains our custom scripts for controlling and debugging
 | `manual_debug.bash` | Bash script that stops the auto-start service and launches the body control node manually for debugging. |
 | `start_rl.bash` | Bash script that launches the reinforcement learning control node (`rl_control_node`). |
 
+## Documentation
+
+Detailed documentation is maintained in the [`docs/`](docs/) folder.
+
+| File | Description |
+|------|-------------|
+| [docs/hric_msgs.md](docs/hric_msgs.md) | Custom ROS 2 message/service/action definitions for the HRIC system (topics, services, actions for navigation, motion, and map-marker subsystems). |
+
 # TODO List
 
 - [✅] Operate ROS2 from remote computer (Rviz,Rqt etc.)
 - [✅] Python GUI to control head
 - [✅] Python GUI to control hands
 - [✅] Python GUI for remote control
+- [✅] Python GUI for full body control
+- [✅] Vision node with basic 3D vision
+- [✅] Alignment of robot with model
+- [✅] Custom poses execution
 - [ ] Implement czech chatbot to the robot
 - [ ] Implement inverse kinematics to control arms
 - [ ] Implement 2D and 3D vision to the robot
