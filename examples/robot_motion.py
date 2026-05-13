@@ -91,7 +91,7 @@ def _pick_motion_file() -> str:
 
     try:
         import tkinter as tk
-        from tkinter import filedialog
+        from tkinter import filedialog, TclError
 
         root = tk.Tk()
         root.withdraw()
@@ -105,7 +105,7 @@ def _pick_motion_file() -> str:
             return path
         print("No file selected – exiting.")
         sys.exit(0)
-    except Exception:
+    except (ImportError, TclError, RuntimeError):
         # Headless fallback: show a numbered console menu
         candidates = sorted(
             os.path.join(initial_dir, f)
