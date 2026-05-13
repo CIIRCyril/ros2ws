@@ -2,7 +2,7 @@ import pybullet as p
 import pybullet_data
 import time
 import numpy as np
-from utils.helpers import get_robot_dict, get_gripper_dict
+import json
 import os
 
 
@@ -22,46 +22,18 @@ def _prepare_urdf_for_pybullet(src_urdf, examples_dir):
         f.write(urdf_text)
     return rewritten_urdf
 
-def save_gripper_dict_to_helpers(gd, helpers_path):
-    """Save updated gripper dictionary back to helpers.py file."""
-    # Read the current file
-    with open(helpers_path, 'r') as f:
-        lines = f.readlines()
-    
-    # Find the start and end of get_gripper_dict function
-    start_idx = None
-    return_idx = None
-    
-    for i, line in enumerate(lines):
-        if 'def get_gripper_dict():' in line:
-            start_idx = i
-        if start_idx is not None and 'return g_dict' in line:
-            return_idx = i
-            break
-    
-    if start_idx is None or return_idx is None:
-        print("Error: Could not find get_gripper_dict or return statement in helpers.py")
-        return False
-    
-    # Generate new g_dict string
-    new_g_dict_lines = ['    g_dict ={']
-    
-    for robot_name, gripper_data in gd.items():
-        line_parts = []
-        for key, value in gripper_data.items():
-            line_parts.append(f'"{key}": {value}')
-        line_str = ', '.join(line_parts)
-        new_g_dict_lines.append(f'             "{robot_name}": {{{line_str}}},')
-    
-    new_g_dict_lines.append('             }')
-    
-    # Replace the old g_dict with new one, keeping the return statement
-    new_lines = lines[:start_idx+1] + [line + '\n' for line in new_g_dict_lines] + lines[return_idx:]
-    
-    # Write back to file
-    with open(helpers_path, 'w') as f:
-        f.writelines(new_lines)
-    
+def _load_init_pos(path):
+    """Load r_dict / g_dict from init_pos.json, or return empty dicts."""
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {'r_dict': {}, 'g_dict': {}}
+
+
+def _save_init_pos(data, path):
+    """Save r_dict / g_dict to init_pos.json."""
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
     return True
 
 def check_gripper_status(gripper_values, close_gripper, open_gripper):
@@ -100,92 +72,16 @@ def check_gripper_status(gripper_values, close_gripper, open_gripper):
     
     return status, metric
 
-def save_robot_dict_to_helpers(rd, helpers_path):
-    """Save updated robot dictionary back to helpers.py file."""
-    # Read the current file
-    with open(helpers_path, 'r') as f:
-        lines = f.readlines()
-    
-    # Find the start and end of get_robot_dict function
-    start_idx = None
-    end_idx = None
-    brace_count = 0
-    in_r_dict = False
-    
-    for i, line in enumerate(lines):
-        if 'def get_robot_dict():' in line:
-            start_idx = i
-        if start_idx is not None and 'r_dict =' in line and '{' in line:
-            in_r_dict = True
-            brace_count = line.count('{') - line.count('}')
-        elif in_r_dict:
-            brace_count += line.count('{') - line.count('}')
-            if brace_count == 0:
-                end_idx = i
-                break
-    
-    if start_idx is None or end_idx is None:
-        print("Error: Could not find r_dict in helpers.py")
-        return False
-    
-    # Generate new r_dict string
-    new_r_dict_lines = ["    r_dict =   {"]
-    
-    # Define the order of keys for consistent output
-    key_order = ['path', 'position', 'orientation', 'default_joint_ori', 'ee_pos', 'ee_ori', 'ee_quat_ori']
-    
-    for key, value in rd.items():
-        parts = []
-        
-        # Sort keys according to defined order, then alphabetically for any remaining
-        sorted_keys = sorted(value.keys(), key=lambda k: (key_order.index(k) if k in key_order else len(key_order), k))
-        
-        for k in sorted_keys:
-            v = value[k]
-            if k == 'position':
-                parts.append(f"'{k}': np.array({list(v)})")
-            elif k in ['default_joint_ori', 'ee_pos', 'ee_ori', 'ee_quat_ori']:
-                parts.append(f"'{k}': {v}")
-            elif k == 'orientation':
-                # Format orientation with np.pi if present
-                formatted_v = str(v)
-                if 1.5707 in v or abs(v[2] - 1.5707963267948966) < 0.0001:
-                    # Replace with np.pi/2
-                    formatted_list = [v[0], v[1], 'np.pi/2' if abs(v[2] - 1.5707963267948966) < 0.0001 else v[2]]
-                    formatted_v = str(formatted_list).replace("'np.pi/2'", "np.pi/2").replace('"np.pi/2"', 'np.pi/2')
-                elif 3.14159 in v or abs(v[2] - np.pi) < 0.0001:
-                    formatted_list = [v[0], v[1], 'np.pi' if abs(v[2] - np.pi) < 0.0001 else v[2]]
-                    formatted_v = str(formatted_list).replace("'np.pi'", "np.pi").replace('"np.pi"', 'np.pi')
-                else:
-                    # Check for multiplies of pi
-                    for mult in [0.5, 0.35, 0.4, 0.2, 1.0]:
-                        if abs(v[2] - mult * np.pi) < 0.0001:
-                            formatted_list = [v[0], v[1], f'{mult}*np.pi']
-                            formatted_v = str(formatted_list).replace(f"'{mult}*np.pi'", f"{mult}*np.pi").replace(f'"{mult}*np.pi"', f'{mult}*np.pi')
-                            break
-                parts.append(f"'{k}': {formatted_v}")
-            else:
-                parts.append(f"'{k}': {repr(v)}")
-        
-        line_str = f"'{key}': {{" + ", ".join(parts) + "}"
-        new_r_dict_lines.append("                             " + line_str + ",")
-    
-    new_r_dict_lines.append("                             }")
-    
-    # Replace the old r_dict with new one
-    new_lines = lines[:start_idx+1] + [line + '\n' for line in new_r_dict_lines] + lines[end_idx+1:]
-    
-    # Write back to file
-    with open(helpers_path, 'w') as f:
-        f.writelines(new_lines)
-    
-    return True
 
 def main():
-    selected_robot = "S2"
+    selected_robot = "S2full"
 
-    # Get robot dictionary
-    rd = get_robot_dict()
+    # Load stored positions from init_pos.json
+    examples_dir = os.path.dirname(os.path.abspath(__file__))
+    init_pos_path = os.path.join(examples_dir, 'init_pos.json')
+    init_pos = _load_init_pos(init_pos_path)
+    rd = init_pos.get('r_dict', {})
+    gd = init_pos.get('g_dict', {})
     print(f"\nUsing fixed robot: {selected_robot}")
 
     # Initialize PyBullet
@@ -194,13 +90,12 @@ def main():
     p.setGravity(0, 0, -9.81)
 
     # Load only ground plane (no table/workspace)
-    p.loadURDF("plane.urdf", basePosition=[0, 0, -0.72])
-    print("Loaded ground plane: plane.urdf at z=-0.72")
+    p.loadURDF("plane.urdf", basePosition=[0, 0, -0.82])
+    print("Loaded ground plane: plane.urdf at z=-0.82")
 
     # Load URDF
     try:
         robot_info = rd.get(selected_robot, {})
-        examples_dir = os.path.dirname(__file__)
         src_urdf = os.path.join(examples_dir, "S2full.urdf")
         urdf = _prepare_urdf_for_pybullet(src_urdf, examples_dir)
         robot_base_pos = list(np.array(robot_info.get('position', [0.0, 0.0, 0.0])).astype(float))
@@ -233,16 +128,33 @@ def main():
     if end_effector_index == -1:
         print("Warning: Could not find end effector link named 'endeffector' in URDF")
 
-    # Reset all non-fixed joints to zero
+    # Build ordered list of non-fixed joints
     non_fixed_joints = []
+    gjoint_idxs = []
     for joint_idx in range(num_joints):
         joint_info = p.getJointInfo(robot_id, joint_idx)
         joint_type = joint_info[2]
+        joint_name = joint_info[1].decode("utf-8")
         if joint_type != p.JOINT_FIXED:
             non_fixed_joints.append(joint_idx)
-    print(f"Resetting {len(non_fixed_joints)} joints to zero")
-    for joint_idx in non_fixed_joints:
-        p.resetJointState(robot_id, joint_idx, 0.0)
+            if 'gjoint' in joint_name:
+                gjoint_idxs.append(joint_idx)
+
+    # Initialise joints from init_pos.json, falling back to zero
+    default_joint_ori = rd.get(selected_robot, {}).get('default_joint_ori', [])
+    gripper_open      = gd.get(selected_robot, {}).get('open', [])
+
+    print(f"Initialising {len(non_fixed_joints)} joints "
+          f"(stored={len(default_joint_ori)}, gripper open={len(gripper_open)})")
+
+    for i, joint_idx in enumerate(non_fixed_joints):
+        val = default_joint_ori[i] if i < len(default_joint_ori) else 0.0
+        p.resetJointState(robot_id, joint_idx, val)
+
+    # Override gripper joints with stored open values
+    for i, joint_idx in enumerate(gjoint_idxs):
+        if i < len(gripper_open):
+            p.resetJointState(robot_id, joint_idx, gripper_open[i])
 
     # Create velocity and force control sliders
     velocity_slider = p.addUserDebugParameter(
@@ -323,19 +235,9 @@ def main():
         cameraTargetPosition=[0, 0, 0.0]
     )
     
-    # Get path to helpers.py
-    helpers_path = os.path.join(os.path.dirname(__file__), 'utils', 'helpers.py')
-    
-    # Get gripper dictionary
-    gd = get_gripper_dict()
-
     if selected_robot not in rd:
-        rd[selected_robot] = {
-            'path': urdf,
-            'position': np.array(robot_base_pos),
-            'orientation': robot_base_orientation,
-        }
-    
+        rd[selected_robot] = {}
+
     # Initialize timer for periodic gripper status printing
     last_print_time = time.time()
     print_interval = 0.5  # Print gripper status every 0.5 seconds
@@ -379,11 +281,11 @@ def main():
                         gd[selected_robot] = {}
                     gd[selected_robot]['open'] = gjoint_values
                     
-                    # Save to helpers.py
-                    if save_gripper_dict_to_helpers(gd, helpers_path):
-                        print(f"Updated helpers.py with gripper open values for {selected_robot}")
+                    init_pos['g_dict'] = gd
+                    if _save_init_pos(init_pos, init_pos_path):
+                        print(f"Saved gripper open values for {selected_robot} to {init_pos_path}")
                     else:
-                        print("Failed to update helpers.py")
+                        print("Failed to save")
                 else:
                     print("No gripper joints (containing 'gjoint') found in robot")
             
@@ -413,11 +315,11 @@ def main():
                         gd[selected_robot] = {}
                     gd[selected_robot]['close'] = gjoint_values
                     
-                    # Save to helpers.py
-                    if save_gripper_dict_to_helpers(gd, helpers_path):
-                        print(f"Updated helpers.py with gripper closed values for {selected_robot}")
+                    init_pos['g_dict'] = gd
+                    if _save_init_pos(init_pos, init_pos_path):
+                        print(f"Saved gripper closed values for {selected_robot} to {init_pos_path}")
                     else:
-                        print("Failed to update helpers.py")
+                        print("Failed to save")
                 else:
                     print("No gripper joints (containing 'gjoint') found in robot")
             
@@ -454,11 +356,11 @@ def main():
                     rd[selected_robot]['ee_ori'] = ee_ori
                     rd[selected_robot]['ee_quat_ori'] = ee_quat_ori
 
-                # Save to helpers.py
-                if save_robot_dict_to_helpers(rd, helpers_path):
-                    print(f"Updated helpers.py with default_joint_ori, ee_pos, ee_ori, and ee_quat_ori for {selected_robot}")
+                init_pos['r_dict'] = rd
+                if _save_init_pos(init_pos, init_pos_path):
+                    print(f"Saved joint values for {selected_robot} to {init_pos_path}")
                 else:
-                    print("Failed to update helpers.py")
+                    print("Failed to save")
             
             # Read velocity and force slider values
             velocity = p.readUserDebugParameter(velocity_slider)
