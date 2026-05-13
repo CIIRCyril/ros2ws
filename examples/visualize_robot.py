@@ -1,9 +1,12 @@
-import pybullet as p
-import pybullet_data
-import time
-import numpy as np
+import csv
+import datetime
 import json
 import os
+import time
+
+import numpy as np
+import pybullet as p
+import pybullet_data
 
 
 def _prepare_urdf_for_pybullet(src_urdf, examples_dir):
@@ -35,6 +38,135 @@ def _save_init_pos(data, path):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2)
     return True
+
+
+# ---------------------------------------------------------------------------
+# URDF joint name  →  (motion_control_GUI limb key, index within that array)
+#
+# GUI limb arrays (all values in degrees, matching motion_control_GUI.py):
+#   left_leg_pos  [0-5]  motors 51-56: Hip Roll/Pitch/Yaw, Knee Pitch, Ankle Pitch/Roll
+#   right_leg_pos [0-5]  motors 61-66: same order
+#   left_arm_pos  [0-6]  motors 11-17: Shoulder Pitch/Roll/Yaw, Elbow Pitch,
+#                                       Wrist Yaw/Pitch/Roll
+#   right_arm_pos [0-6]  motors 21-27: same order
+#   waist_pos     [0]    motor  31:    Waist Yaw
+#   head_pos      [0-2]  motors 3,2,1: Roll, Pitch, Yaw  (HEAD_IDS=[3,2,1])
+# ---------------------------------------------------------------------------
+URDF_TO_GUI = {
+    # Left leg  (motors 51-56)
+    'hip_roll_l_joint':    ('left_leg_pos',  0),
+    'hip_pitch_l_joint':   ('left_leg_pos',  1),
+    'hip_yaw_l_joint':     ('left_leg_pos',  2),
+    'knee_pitch_l_joint':  ('left_leg_pos',  3),
+    'ankle_pitch_l_joint': ('left_leg_pos',  4),
+    'ankle_roll_l_joint':  ('left_leg_pos',  5),
+    # Right leg  (motors 61-66)
+    'hip_roll_r_joint':    ('right_leg_pos', 0),
+    'hip_pitch_r_joint':   ('right_leg_pos', 1),
+    'hip_yaw_r_joint':     ('right_leg_pos', 2),
+    'knee_pitch_r_joint':  ('right_leg_pos', 3),
+    'ankle_pitch_r_joint': ('right_leg_pos', 4),
+    'ankle_roll_r_joint':  ('right_leg_pos', 5),
+    # Waist  (motor 31)
+    'body_yaw_rjoint':     ('waist_pos',     0),
+    # Head  [roll(m3), pitch(m2), yaw(m1)]  — order matches HEAD_IDS=[3,2,1]
+    'head_roll_joint':     ('head_pos',      0),
+    'head_pitch_joint':    ('head_pos',      1),
+    'head_yaw_joint':      ('head_pos',      2),
+    # Left arm  (motors 11-17)
+    'shoulder_pitch_l_joint':  ('left_arm_pos', 0),
+    'shoulder_roll_l_joint':   ('left_arm_pos', 1),
+    'shoulder_yaw_l_joint':    ('left_arm_pos', 2),
+    'elbow_pitch_l_joint':     ('left_arm_pos', 3),
+    'wrist_yaw_l_joint':       ('left_arm_pos', 4),
+    'wrist_pitch_l_joint':     ('left_arm_pos', 5),
+    'wrist_roll_l_joint':      ('left_arm_pos', 6),
+    # Right arm  (motors 21-27)
+    'shoulder_pitch_r_rjoint': ('right_arm_pos', 0),
+    'shoulder_roll_r_rjoint':  ('right_arm_pos', 1),
+    'shoulder_yaw_r_rjoint':   ('right_arm_pos', 2),
+    'elbow_pitch_r_rjoint':    ('right_arm_pos', 3),
+    'wrist_yaw_r_rjoint':      ('right_arm_pos', 4),
+    'wrist_pitch_r_rjoint':    ('right_arm_pos', 5),
+    'wrist_roll_r_rjoint':     ('right_arm_pos', 6),
+}
+
+
+def _save_to_gui_positions(robot_id, sliders, positions_file):
+    """Collect current slider values and append a named position to
+    saved_positions.csv in the format expected by motion_control_GUI.py.
+
+    Limb arrays store degrees (same convention as the GUI sliders).
+    Returns the position name used.
+    """
+    limb_sizes = {
+        'left_leg_pos': 6, 'right_leg_pos': 6,
+        'left_arm_pos': 7, 'right_arm_pos': 7,
+        'waist_pos':    1, 'head_pos':      3,
+    }
+    positions = {k: [0.0] * n for k, n in limb_sizes.items()}
+
+    for joint_idx, slider_id in sliders:
+        joint_info = p.getJointInfo(robot_id, joint_idx)
+        joint_name = joint_info[1].decode('utf-8')
+        if joint_name not in URDF_TO_GUI:
+            continue
+        limb_key, idx = URDF_TO_GUI[joint_name]
+        # Slider already holds degrees for revolute joints
+        positions[limb_key][idx] = round(p.readUserDebugParameter(slider_id), 2)
+
+    payload = {
+        'leg_mode':              'Position',
+        'arm_mode':              'Position',
+        'left_leg_pos':          positions['left_leg_pos'],
+        'right_leg_pos':         positions['right_leg_pos'],
+        'left_arm_pos':          positions['left_arm_pos'],
+        'right_arm_pos':         positions['right_arm_pos'],
+        'leg_profile_speed':     0.5,
+        'leg_position_current':  8.0,
+        'leg_speed_current':     8.0,
+        'arm_profile_speed':     0.5,
+        'arm_position_current':  8.0,
+        'arm_speed_current':     8.0,
+        'waist_pos':             positions['waist_pos'],
+        'waist_speed':           [0.2],
+        'head_pos':              positions['head_pos'],
+        'head_speed':            [0.2],
+        'left_finger_pos':       [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+        'right_finger_pos':      [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+        'left_finger_vel':       [1.0] * 6,
+        'right_finger_vel':      [1.0] * 6,
+        'hand_effort':           [1.0],
+    }
+
+    name = datetime.datetime.now().strftime('sim_%Y%m%d_%H%M%S')
+
+    # Merge with any existing positions in the file
+    saved = {}
+    if os.path.exists(positions_file):
+        try:
+            with open(positions_file, 'r', newline='', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    n  = (row.get('name') or '').strip()
+                    pl = row.get('payload')
+                    if n and pl:
+                        try:
+                            saved[n] = json.loads(pl)
+                        except json.JSONDecodeError:
+                            pass
+        except OSError:
+            pass
+
+    saved[name] = payload
+
+    with open(positions_file, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=['name', 'payload'])
+        writer.writeheader()
+        for n in sorted(saved.keys()):
+            writer.writerow({'name': n, 'payload': json.dumps(saved[n])})
+
+    return name
 
 def check_gripper_status(gripper_values, close_gripper, open_gripper):
     """
@@ -322,7 +454,14 @@ def main():
                         print("Failed to save")
                 else:
                     print("No gripper joints (containing 'gjoint') found in robot")
-            
+
+            if ord('r') in keys and keys[ord('r')] & p.KEY_WAS_TRIGGERED:
+                # Save current pose to saved_positions.csv for motion_control_GUI
+                positions_file = os.path.join(examples_dir, 'saved_positions.csv')
+                pos_name = _save_to_gui_positions(robot_id, sliders, positions_file)
+                print(f"Saved pose '{pos_name}' to {positions_file}")
+                print("Load and execute it via motion_control_GUI.py → Positions tab")
+
             if ord('t') in keys and keys[ord('t')] & p.KEY_WAS_TRIGGERED:
                 # Print current joint values
                 joint_values = []
@@ -393,7 +532,7 @@ def main():
                             gd[selected_robot]['close'], 
                             gd[selected_robot]['open']
                         )
-                        print(f"Gripper Status: {status} | Metric: {metric:.3f} | Values: {[round(v, 3) for v in gjoint_values]}")
+                        #print(f"Gripper Status: {status} | Metric: {metric:.3f} | Values: {[round(v, 3) for v in gjoint_values]}")
                     else:
                         print(f"Gripper values: {[round(v, 3) for v in gjoint_values]} (no open/close reference - press 'o' and 'c' to set)")
                 
