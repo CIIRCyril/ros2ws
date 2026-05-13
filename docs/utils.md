@@ -1,6 +1,10 @@
 # utils
 
-The `utils` package is a collection of robot-side utility services that run in parallel with the main control stack. It contains three main components: (1) **bag_record** – a ROS 2 bag recording tool that can capture all topics or a configured subset, with a trigger mechanism and a 4 GB rotation limit; (2) **disk_manager** – a daemon that monitors available disk space and automatically deletes the oldest bag files to prevent the SSD from filling up; (3) **system_monitor** – a lightweight native binary that periodically samples CPU (per-core, 200 ms), memory (2 s), and per-process resource usage (5 s) and publishes them using `monitor_msgs` types on `/monitor/*` topics.
+The `utils` package is a collection of robot-side utility services that run in parallel with the main control stack. It contains three main components:
+
+- **bag_record** – a ROS 2 bag recording tool that can capture all topics or a configured subset, with a trigger mechanism and a 4 GB rotation limit.
+- **disk_manager** – a daemon that monitors available disk space and automatically deletes the oldest bag files to prevent the SSD from filling up.
+- **system_monitor** – a lightweight native binary that periodically samples CPU (per-core, 200 ms), memory (2 s), and per-process resource usage (5 s) and publishes them using `monitor_msgs` types on `/monitor/*` topics.
 
 ## Launch individual utilities
 

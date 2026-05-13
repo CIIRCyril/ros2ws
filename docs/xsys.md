@@ -42,7 +42,9 @@ class SerialQuery(Node):
     def __init__(self):
         super().__init__('serial_query')
         client = self.create_client(GetSerialNumber, '/xsys/get_serial_number')
-        client.wait_for_service(timeout_sec=5.0)
+        if not client.wait_for_service(timeout_sec=5.0):
+            self.get_logger().error('xsys service not available')
+            return
         future = client.call_async(GetSerialNumber.Request())
         rclpy.spin_until_future_complete(self, future)
         print('Serial number:', future.result().serial_number)
