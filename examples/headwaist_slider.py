@@ -40,7 +40,7 @@ class HeadWaistGUI(Node):
             MotorStatusMsg, '/waist/status', self.waist_status_cb, 10)
 
         # motor IDs (adjust if needed)
-        self.head_ids = [3, 2, 1]     # roll pitch yaw
+        self.head_ids = [1, 2, 3]     # roll pitch yaw
         self.waist_ids = [31]         # waist yaw (doc)
 
         # limits

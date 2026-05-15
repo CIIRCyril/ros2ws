@@ -12,6 +12,8 @@ A coloured box tracks the target; colour indicates IK accuracy:
 Keyboard controls (click the PyBullet window first):
     o     — open gripper fingers (from init_pos.json)
     c     — close gripper fingers (from init_pos.json)
+    r     — save current IK pose to saved_positions.csv
+    x     — send right arm + waist positions directly to the real robot (ROS2)
     t     — print current joint values and end-effector pose to console
     q     — quit
 """
@@ -19,12 +21,22 @@ Keyboard controls (click the PyBullet window first):
 import csv
 import datetime
 import json
+import math
 import os
+import threading
 import time
 
 import numpy as np
 import pybullet as p
 import pybullet_data
+
+try:
+    import rclpy
+    from rclpy.node import Node
+    from bodyctrl_msgs.msg import CmdSetMotorPosition, SetMotorPosition
+    _ROS2_AVAILABLE = True
+except ImportError:
+    _ROS2_AVAILABLE = False
 
 ROBOT_KEY = 'S2full'
 
@@ -38,7 +50,7 @@ ROBOT_KEY = 'S2full'
 #                                       Wrist Yaw/Pitch/Roll
 #   right_arm_pos [0-6]  motors 21-27: same order
 #   waist_pos     [0]    motor  31:    Waist Yaw
-#   head_pos      [0-2]  motors 3,2,1: Roll, Pitch, Yaw  (HEAD_IDS=[3,2,1])
+#   head_pos      [0-2]  motors 1,2,3: Roll, Pitch, Yaw  (HEAD_IDS=[1,2,3])
 # ---------------------------------------------------------------------------
 URDF_TO_GUI = {
     # Left leg  (motors 51-56)
@@ -57,7 +69,7 @@ URDF_TO_GUI = {
     'ankle_roll_r_joint':  ('right_leg_pos', 5),
     # Waist  (motor 31)
     'body_yaw_rjoint':     ('waist_pos',     0),
-    # Head  [roll(m3), pitch(m2), yaw(m1)]  — order matches HEAD_IDS=[3,2,1]
+    # Head  [roll(m1), pitch(m2), yaw(m3)]  — order matches HEAD_IDS=[1,2,3]
     'head_roll_joint':     ('head_pos',      0),
     'head_pitch_joint':    ('head_pos',      1),
     'head_yaw_joint':      ('head_pos',      2),
@@ -187,6 +199,53 @@ def _prepare_urdf_for_pybullet(src_urdf, examples_dir):
     with open(rewritten_urdf, 'w', encoding='utf-8') as f:
         f.write(urdf_text)
     return rewritten_urdf
+
+
+def _publish_arm_waist_to_robot(joint_snapshot, arm_pub, waist_pub, node):
+    """Publish right arm + waist position commands to the real robot via ROS2.
+
+    joint_snapshot: list of (joint_idx, joint_name, pos_rad) captured in the
+    main PyBullet thread to avoid cross-thread pybullet calls.
+    Runs in a daemon thread so it never blocks the simulation loop.
+    """
+    right_arm_pos = [0.0] * 7   # motors 21-27
+    waist_pos_rad = 0.0          # motor 31
+
+    for _joint_idx, joint_name, pos_rad in joint_snapshot:
+        if joint_name not in URDF_TO_GUI:
+            continue
+        limb_key, idx = URDF_TO_GUI[joint_name]
+        if limb_key == 'right_arm_pos':
+            right_arm_pos[idx] = pos_rad
+        elif limb_key == 'waist_pos':
+            waist_pos_rad = pos_rad
+
+    # Right arm — position control, motors 21-27
+    arm_msg = CmdSetMotorPosition()
+    arm_msg.cmds = []
+    for i, motor_id in enumerate(range(21, 28)):
+        c = SetMotorPosition()
+        c.name = motor_id
+        c.pos  = float(right_arm_pos[i])
+        c.spd  = 0.5   # profile speed
+        c.cur  = 8.0   # current limit (A)
+        arm_msg.cmds.append(c)
+    arm_pub.publish(arm_msg)
+
+    # Waist — position control, motor 31
+    waist_msg = CmdSetMotorPosition()
+    wc = SetMotorPosition()
+    wc.name = 31
+    wc.pos  = float(waist_pos_rad)
+    wc.spd  = 0.2
+    wc.cur  = 8.0
+    waist_msg.cmds = [wc]
+    waist_pub.publish(waist_msg)
+
+    arm_deg   = [round(math.degrees(v), 1) for v in right_arm_pos]
+    waist_deg = round(math.degrees(waist_pos_rad), 1)
+    node.get_logger().info(f'Sent right arm {arm_deg} deg, waist {waist_deg} deg')
+    print(f'[x] Right arm: {arm_deg} deg  |  waist: {waist_deg} deg')
 
 
 def apply_ik_solution(robot_id, ik_solution, joint_idxs):
@@ -337,6 +396,19 @@ def main():
         cameraTargetPosition=[0, 0, 0.0],
     )
 
+    # ROS2 publishers for live robot control
+    ros_node = None
+    arm_pub  = None
+    waist_pub = None
+    if _ROS2_AVAILABLE:
+        rclpy.init()
+        ros_node  = Node('visualize_robot_ik')
+        arm_pub   = ros_node.create_publisher(CmdSetMotorPosition, '/arm/cmd_pos',   10)
+        waist_pub = ros_node.create_publisher(CmdSetMotorPosition, '/waist/cmd_pos', 10)
+        print('ROS2 ready — press X to send right arm + waist to robot')
+    else:
+        print('ROS2/bodyctrl_msgs not available — X key disabled')
+
     try:
         while True:
             keys = p.getKeyboardEvents()
@@ -356,6 +428,23 @@ def main():
                     print(f'Gripper close: {gripper_close}')
                 else:
                     print('No gripper close values in init_pos.json')
+
+            # 'x' — send right arm + waist directly to the real robot
+            if ord('x') in keys and keys[ord('x')] & p.KEY_WAS_TRIGGERED:
+                if ros_node is not None:
+                    # Snapshot joint positions here (main thread) to avoid
+                    # calling pybullet from the publisher thread
+                    snapshot = [
+                        (ji, jn, p.getJointState(robot_id, ji)[0])
+                        for ji, jn in zip(joint_idxs, joint_names)
+                    ]
+                    threading.Thread(
+                        target=_publish_arm_waist_to_robot,
+                        args=(snapshot, arm_pub, waist_pub, ros_node),
+                        daemon=True,
+                    ).start()
+                else:
+                    print('[x] ROS2 not available — cannot send to robot')
 
             # 'r' — save current IK pose to saved_positions.csv for motion_control_GUI
             if ord('r') in keys and keys[ord('r')] & p.KEY_WAS_TRIGGERED:
@@ -423,6 +512,9 @@ def main():
     except Exception as ex:
         print(f'Simulation error: {ex}')
     finally:
+        if ros_node is not None:
+            ros_node.destroy_node()
+            rclpy.shutdown()
         p.disconnect()
 
 

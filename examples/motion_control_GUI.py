@@ -91,7 +91,7 @@ WAIST_LIMITS_DEG = (-170, 170)   # motor 31
 
 HEAD_NAMES      = ["Head Roll", "Head Pitch", "Head Yaw"]
 HEAD_LIMITS_DEG = [(-26, 26), (-25, 25), (-90, 90)]
-HEAD_IDS        = [3, 2, 1]   # motor IDs for roll, pitch, yaw
+HEAD_IDS        = [1, 2, 3]   # motor IDs for roll, pitch, yaw
 
 FINGER_NAMES = ['1', '2', '3', '4', '5', '6']
 
