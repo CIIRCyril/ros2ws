@@ -37,6 +37,7 @@ Detailed documentation is maintained in the [`docs/`](docs/) folder.
 | [docs/utils.md](docs/utils.md) | Utility services — ROS bag recording, disk-space management, and system-resource monitoring (CPU/memory/I/O). |
 | [docs/xsys.md](docs/xsys.md) | Core system service node — exposes a ROS 2 service to retrieve the robot's unique hardware serial number. |
 | [docs/xsys_msgs.md](docs/xsys_msgs.md) | Custom ROS 2 service interface for system-level queries — `GetSerialNumber` service definition. |
+| [docs/ros2install.md](docs/ros2install.md) | Full ROS 2 Humble installation guide for Ubuntu 22.04 — locale setup, repository, desktop install, and all additional stacks. |
 
 # TODO List
 
