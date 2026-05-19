@@ -50,7 +50,7 @@ ROBOT_KEY = 'S2full'
 #                                       Wrist Yaw/Pitch/Roll
 #   right_arm_pos [0-6]  motors 21-27: same order
 #   waist_pos     [0]    motor  31:    Waist Yaw
-#   head_pos      [0-2]  motors 1,2,3: Roll, Pitch, Yaw  (HEAD_IDS=[1,2,3])
+#   head_pos      [0-2]  motors 3,2,1: Roll, Pitch, Yaw  (HEAD_IDS=[3,2,1])
 # ---------------------------------------------------------------------------
 URDF_TO_GUI = {
     # Left leg  (motors 51-56)
@@ -69,7 +69,7 @@ URDF_TO_GUI = {
     'ankle_roll_r_joint':  ('right_leg_pos', 5),
     # Waist  (motor 31)
     'body_yaw_rjoint':     ('waist_pos',     0),
-    # Head  [roll(m1), pitch(m2), yaw(m3)]  — order matches HEAD_IDS=[1,2,3]
+    # Head  [roll(m3), pitch(m2), yaw(m1)]  — order matches HEAD_IDS=[3,2,1]
     'head_roll_joint':     ('head_pos',      0),
     'head_pitch_joint':    ('head_pos',      1),
     'head_yaw_joint':      ('head_pos',      2),

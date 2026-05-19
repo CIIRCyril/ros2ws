@@ -38,9 +38,8 @@ class HeadSliderGUI(Node):
             10
         )
 
-        # adjust if mapping different
         # roll, pitch, yaw -> motor IDs
-        self.motor_ids = [3, 2, 1]
+        self.motor_ids = [1, 2, 3]
 
         self.names = ["Head roll", "Head pitch", "Head yaw"]
 

@@ -39,8 +39,8 @@ class HeadWaistGUI(Node):
         self.create_subscription(
             MotorStatusMsg, '/waist/status', self.waist_status_cb, 10)
 
-        # motor IDs (adjust if needed)
-        self.head_ids = [1, 2, 3]     # roll pitch yaw
+        # motor IDs (roll pitch yaw)
+        self.head_ids = [1, 2, 3]
         self.waist_ids = [31]         # waist yaw (doc)
 
         # limits

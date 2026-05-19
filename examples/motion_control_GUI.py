@@ -110,7 +110,11 @@ def _status_text(st, pos_deg=None):
             f"cur {st.current:5.2f}A  tmp {st.temperature:5.1f}°C  {err}")
 
 
-def _build_joint_rows(parent, names, limits_deg, pos_setter, spd_setter, slider_len=300):
+def _status_color(st):
+    return '#16a34a' if st.error == 0 else '#dc2626'
+
+
+def _build_joint_rows(parent, names, limits_deg, pos_setter, spd_setter, slider_len=280):
     """Build position (degrees) + speed slider rows for one limb group.
     Returns (pos_sliders, spd_sliders, status_labels).
     Speed sliders are created but not packed (shown only in Speed mode).
@@ -130,7 +134,7 @@ def _build_joint_rows(parent, names, limits_deg, pos_setter, spd_setter, slider_
                       command=lambda v, idx=i: spd_setter(idx, v))
         spd_sliders.append(ss)
 
-        lbl = tk.Label(parent, text="--", font=("Courier", 9), anchor='w', width=55)
+        lbl = tk.Label(parent, text="--", font=("Courier", 8), anchor='w', width=55)
         lbl.pack(fill='x', padx=4, pady=(0, 4))
         status_labels.append(lbl)
 
@@ -175,12 +179,12 @@ def _build_mode_params_panel(parent, joint_names, kp_defaults, kd_defaults,
         tk.Label(mit_frame, text=name, width=20, anchor='w').grid(
             row=i + 1, column=0, padx=(4, 8), pady=1, sticky='w')
         kp_sl = tk.Scale(mit_frame, from_=0, to=2000, resolution=1,
-                         orient=tk.HORIZONTAL, length=220,
+                         orient=tk.HORIZONTAL, length=200,
                          command=lambda v, idx=i: kp_refs[idx].__setitem__(0, float(v)))
         kp_sl.set(kp_defaults[i])
         kp_sl.grid(row=i + 1, column=1, padx=4, pady=1)
         kd_sl = tk.Scale(mit_frame, from_=0, to=300, resolution=1,
-                         orient=tk.HORIZONTAL, length=220,
+                         orient=tk.HORIZONTAL, length=200,
                          command=lambda v, idx=i: kd_refs[idx].__setitem__(0, float(v)))
         kd_sl.set(kd_defaults[i])
         kd_sl.grid(row=i + 1, column=2, padx=4, pady=1)
@@ -188,14 +192,14 @@ def _build_mode_params_panel(parent, joint_names, kp_defaults, kd_defaults,
     # Position-mode frame
     tk.Label(pos_frame, text="Profile speed  (rpm)").pack()
     pspd_sl = tk.Scale(pos_frame, from_=0.0, to=4.0, resolution=0.1,
-                       orient=tk.HORIZONTAL, length=360,
+                       orient=tk.HORIZONTAL, length=320,
                        command=lambda v: pspd_ref.__setitem__(0, float(v)))
     pspd_sl.set(spd_default)
     pspd_sl.pack()
 
     tk.Label(pos_frame, text="Current limit  (A)").pack()
     pcur_sl = tk.Scale(pos_frame, from_=0.0, to=cur_max, resolution=0.1,
-                       orient=tk.HORIZONTAL, length=360,
+                       orient=tk.HORIZONTAL, length=320,
                        command=lambda v: pcur_ref.__setitem__(0, float(v)))
     pcur_sl.set(cur_default)
     pcur_sl.pack()
@@ -203,7 +207,7 @@ def _build_mode_params_panel(parent, joint_names, kp_defaults, kd_defaults,
     # Speed-mode frame
     tk.Label(spd_frame, text="Current limit  (A)").pack()
     scur_sl = tk.Scale(spd_frame, from_=0.0, to=cur_max, resolution=0.1,
-                       orient=tk.HORIZONTAL, length=360,
+                       orient=tk.HORIZONTAL, length=320,
                        command=lambda v: scur_ref.__setitem__(0, float(v)))
     scur_sl.set(cur_default)
     scur_sl.pack()
@@ -273,12 +277,10 @@ class MotionControlGUI(Node):
 
         # ── state: waist ──────────────────────────────────────────────────────
         self.waist_pos   = [0.0]
-        self.waist_speed = [0.2]
         self._waist_init = [False]
 
         # ── state: head ───────────────────────────────────────────────────────
         self.head_pos    = [0.0, 0.0, 0.0]
-        self.head_speed  = [0.2]
 
         # ── state: hands ──────────────────────────────────────────────────────
         self.left_finger_pos  = [0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
@@ -304,6 +306,11 @@ class MotionControlGUI(Node):
     def _build_gui(self):
         self.root = tk.Tk()
         self.root.title("Robot Motion Control")
+        self.root.option_add("*Font", "Arial 9")
+        self.root.geometry("1920x1080")
+        self.root.minsize(1280, 720)
+        self.root.attributes('-fullscreen', True)
+        self.root.bind('<Escape>', lambda _e: self.root.attributes('-fullscreen', False))
 
         # ── global top bar ────────────────────────────────────────────────────
         top = tk.Frame(self.root, bg='#222')
@@ -311,58 +318,66 @@ class MotionControlGUI(Node):
 
         tk.Button(
             top, text="STOP MOTION",
-            bg='#cc2222', fg='white', font=('Arial', 11, 'bold'),
+            bg='#cc2222', fg='white', font=('Arial', 10, 'bold'),
             height=2, command=self._stop_motion,
         ).pack(side='left', padx=8, pady=4)
 
         tk.Button(
             top, text="ZERO ALL JOINTS",
-            bg='#2255aa', fg='white', font=('Arial', 10, 'bold'),
+            bg='#2255aa', fg='white', font=('Arial', 9, 'bold'),
             height=2, command=self._zero_all_joints,
         ).pack(side='left', padx=6, pady=4)
 
         tk.Button(
             top, text="SAVE POSITION",
-            bg='#2d7f3b', fg='white', font=('Arial', 10, 'bold'),
+            bg='#2d7f3b', fg='white', font=('Arial', 9, 'bold'),
             height=2, command=self._save_named_position,
         ).pack(side='left', padx=6, pady=4)
 
         tk.Button(
             top, text="EXIT",
-            bg='#444444', fg='white', font=('Arial', 10, 'bold'),
+            bg='#444444', fg='white', font=('Arial', 9, 'bold'),
             height=2, command=self._exit_app,
         ).pack(side='right', padx=8, pady=4)
 
         self._motion_status_var = tk.StringVar(value='motion: —')
         tk.Label(
             top, textvariable=self._motion_status_var,
-            bg='#222', fg='#ffff88', font=('Courier', 9), anchor='w',
+            bg='#222', fg='#ffff88', font=('Courier', 8), anchor='w',
         ).pack(side='left', padx=12)
 
         # ── notebook tabs ─────────────────────────────────────────────────────
         nb = ttk.Notebook(self.root)
         nb.pack(fill='both', expand=True, padx=4, pady=4)
 
-        leg_tab   = ttk.Frame(nb)
-        arm_tab   = ttk.Frame(nb)
-        waist_tab = ttk.Frame(nb)
-        head_tab  = ttk.Frame(nb)
+        body_tab  = ttk.Frame(nb)
         hand_tab  = ttk.Frame(nb)
         pos_tab   = ttk.Frame(nb)
 
-        nb.add(leg_tab,   text="  Legs  ")
-        nb.add(arm_tab,   text="  Arms  ")
-        nb.add(waist_tab, text="  Waist  ")
-        nb.add(head_tab,  text="  Head  ")
+        nb.add(body_tab,  text="  Body  ")
         nb.add(hand_tab,  text="  Hands  ")
         nb.add(pos_tab,   text="  Positions  ")
 
-        self._build_leg_tab(leg_tab)
-        self._build_arm_tab(arm_tab)
-        self._build_waist_tab(waist_tab)
-        self._build_head_tab(head_tab)
+        self._build_body_tab(body_tab)
         self._build_hand_tab(hand_tab)
         self._build_positions_tab(pos_tab)
+
+    def _build_body_tab(self, parent):
+        body_grid = ttk.Frame(parent)
+        body_grid.pack(fill='both', expand=True, padx=4, pady=4)
+
+        body_grid.grid_rowconfigure(0, weight=1)
+        body_grid.grid_columnconfigure(0, weight=1)
+        body_grid.grid_columnconfigure(1, weight=1)
+
+        leg_tab = ttk.LabelFrame(body_grid, text="Lower Body")
+        arm_tab = ttk.LabelFrame(body_grid, text="Upper Body")
+
+        leg_tab.grid(row=0, column=0, padx=4, pady=4, sticky='nsew')
+        arm_tab.grid(row=0, column=1, padx=4, pady=4, sticky='nsew')
+
+        self._build_leg_tab(leg_tab)
+        self._build_arm_tab(arm_tab)
 
     # ── Leg tab ───────────────────────────────────────────────────────────────
 
@@ -370,14 +385,14 @@ class MotionControlGUI(Node):
         warn = tk.Label(
             parent,
             text="⚠  DANGER — Do NOT command legs while robot is standing unsupported!  ⚠",
-            bg='#882200', fg='white', font=('Arial', 10, 'bold'),
+            bg='#882200', fg='white', font=('Arial', 9, 'bold'),
         )
         warn.pack(fill='x')
 
         # mode bar
         mbar = tk.Frame(parent, bg='#333')
         mbar.pack(fill='x', padx=4, pady=4)
-        tk.Label(mbar, text="Leg mode:", bg='#333', fg='white').pack(side='left', padx=6)
+        tk.Label(mbar, text="Lower body mode:", bg='#333', fg='white').pack(side='left', padx=6)
         self._leg_mode_var = tk.StringVar(value=MODE_POSITION)
         for mode in (MODE_MIT, MODE_POSITION, MODE_SPEED):
             tk.Radiobutton(mbar, text=mode, variable=self._leg_mode_var, value=mode,
@@ -404,7 +419,9 @@ class MotionControlGUI(Node):
 
         (self._ll_pos_sl, self._ll_spd_sl,
          self._ll_status) = _build_joint_rows(
-            lf, LEFT_LEG_NAMES, LEG_LIMITS_DEG,
+            lf,
+            [f"{mid} {name}" for mid, name in zip(self._left_leg_ids, LEFT_LEG_NAMES)],
+            LEG_LIMITS_DEG,
             lambda i, v: self._set_pos(self.left_leg_pos, i, v),
             lambda i, v: self._set_spd(self.left_leg_spd, i, v),
         )
@@ -416,7 +433,9 @@ class MotionControlGUI(Node):
 
         (self._rl_pos_sl, self._rl_spd_sl,
          self._rl_status) = _build_joint_rows(
-            rf, RIGHT_LEG_NAMES, LEG_LIMITS_DEG,
+            rf,
+            [f"{mid} {name}" for mid, name in zip(self._right_leg_ids, RIGHT_LEG_NAMES)],
+            LEG_LIMITS_DEG,
             lambda i, v: self._set_pos(self.right_leg_pos, i, v),
             lambda i, v: self._set_spd(self.right_leg_spd, i, v),
         )
@@ -427,8 +446,12 @@ class MotionControlGUI(Node):
                   ).pack(fill='x', padx=4, pady=(4, 2))
 
         # params panel
-        pf = ttk.LabelFrame(cols, text="Leg parameters")
-        pf.grid(row=1, column=0, columnspan=2, padx=6, pady=4, sticky='ew')
+        wf = ttk.LabelFrame(cols, text="Waist  (motor 31)")
+        wf.grid(row=1, column=0, columnspan=2, padx=6, pady=4, sticky='ew')
+        self._build_waist_tab(wf)
+
+        pf = ttk.LabelFrame(cols, text="Lower body parameters")
+        pf.grid(row=2, column=0, columnspan=2, padx=6, pady=4, sticky='ew')
 
         (self._leg_mit_frame, self._leg_pos_frame, self._leg_spd_frame,
          self._leg_kp, self._leg_kd,
@@ -463,7 +486,7 @@ class MotionControlGUI(Node):
         # mode bar
         mbar = tk.Frame(parent, bg='#333')
         mbar.pack(fill='x', padx=4, pady=4)
-        tk.Label(mbar, text="Arm mode:", bg='#333', fg='white').pack(side='left', padx=6)
+        tk.Label(mbar, text="Upper body mode:", bg='#333', fg='white').pack(side='left', padx=6)
         self._arm_mode_var = tk.StringVar(value=MODE_POSITION)
         for mode in (MODE_MIT, MODE_POSITION, MODE_SPEED):
             tk.Radiobutton(mbar, text=mode, variable=self._arm_mode_var, value=mode,
@@ -488,7 +511,9 @@ class MotionControlGUI(Node):
 
         (self._la_pos_sl, self._la_spd_sl,
          self._la_status) = _build_joint_rows(
-            lf, LEFT_ARM_NAMES, LEFT_ARM_LIMITS_DEG,
+            lf,
+            [f"{mid} {name}" for mid, name in zip(self._left_arm_ids, LEFT_ARM_NAMES)],
+            LEFT_ARM_LIMITS_DEG,
             lambda i, v: self._set_pos(self.left_arm_pos, i, v),
             lambda i, v: self._set_spd(self.left_arm_spd, i, v),
         )
@@ -500,7 +525,9 @@ class MotionControlGUI(Node):
 
         (self._ra_pos_sl, self._ra_spd_sl,
          self._ra_status) = _build_joint_rows(
-            rf, RIGHT_ARM_NAMES, RIGHT_ARM_LIMITS_DEG,
+            rf,
+            [f"{mid} {name}" for mid, name in zip(self._right_arm_ids, RIGHT_ARM_NAMES)],
+            RIGHT_ARM_LIMITS_DEG,
             lambda i, v: self._set_pos(self.right_arm_pos, i, v),
             lambda i, v: self._set_spd(self.right_arm_spd, i, v),
         )
@@ -510,8 +537,12 @@ class MotionControlGUI(Node):
                       self.right_arm_pos, self.right_arm_spd)
                   ).pack(fill='x', padx=4, pady=(4, 2))
 
-        pf = ttk.LabelFrame(cols, text="Arm parameters")
-        pf.grid(row=1, column=0, columnspan=2, padx=6, pady=4, sticky='ew')
+        hf = ttk.LabelFrame(cols, text="Head  (shared speed/current with upper body)")
+        hf.grid(row=1, column=0, columnspan=2, padx=6, pady=4, sticky='ew')
+        self._build_head_tab(hf)
+
+        pf = ttk.LabelFrame(cols, text="Upper body parameters")
+        pf.grid(row=2, column=0, columnspan=2, padx=6, pady=4, sticky='ew')
 
         (self._arm_mit_frame, self._arm_pos_frame, self._arm_spd_frame,
          self._arm_kp, self._arm_kd,
@@ -542,32 +573,23 @@ class MotionControlGUI(Node):
     # ── Waist tab ─────────────────────────────────────────────────────────────
 
     def _build_waist_tab(self, parent):
-        tk.Label(parent, text="Waist Yaw  (motor 31)",
-                 font=('Arial', 11, 'bold')).pack(pady=(16, 4))
+        tk.Label(parent, text="Waist angle only. Speed/current shared with Leg parameters.",
+                 font=('Arial', 9)).pack(pady=(6, 2))
 
         self._waist_slider = tk.Scale(
             parent, from_=WAIST_LIMITS_DEG[0], to=WAIST_LIMITS_DEG[1],
-            resolution=0.1, orient=tk.HORIZONTAL, length=340,
-            label="degrees",
+            resolution=0.1, orient=tk.HORIZONTAL, length=300,
+            label="31 Waist Yaw (degrees)",
             command=lambda v: self.waist_pos.__setitem__(0, float(v)),
         )
         self._waist_slider.pack()
 
         self._waist_status_lbl = tk.Label(
-            parent, text="--", font=("Courier", 9), anchor='w', width=55)
+            parent, text="--", font=("Courier", 8), anchor='w', width=55)
         self._waist_status_lbl.pack(fill='x', padx=8, pady=(0, 8))
 
-        tk.Label(parent, text="Profile speed  (rpm)").pack()
-        self._waist_spd_slider = tk.Scale(
-            parent, from_=0.0, to=4.0, resolution=0.1,
-            orient=tk.HORIZONTAL, length=340,
-            command=lambda v: self.waist_speed.__setitem__(0, float(v)),
-        )
-        self._waist_spd_slider.set(self.waist_speed[0])
-        self._waist_spd_slider.pack()
-
         tk.Button(parent, text="ZERO WAIST",
-                  command=self._zero_waist).pack(padx=8, pady=16, fill='x')
+                  command=self._zero_waist).pack(padx=8, pady=(0, 8), fill='x')
 
     def _zero_waist(self):
         self._waist_slider.set(0.0)
@@ -576,36 +598,27 @@ class MotionControlGUI(Node):
     # ── Head tab ──────────────────────────────────────────────────────────────
 
     def _build_head_tab(self, parent):
-        tk.Label(parent, text="Head motors  (roll=motor 3, pitch=motor 2, yaw=motor 1)",
-                 font=('Arial', 11, 'bold')).pack(pady=(16, 4))
+        tk.Label(parent, text="Speed/current follow Upper body parameters in Position/Speed modes.",
+                 font=('Arial', 8)).pack(pady=(0, 4))
 
         self._head_sliders = []
         self._head_status_lbls = []
 
         for i in range(3):
             lo, hi = HEAD_LIMITS_DEG[i]
-            tk.Label(parent, text=f"{HEAD_NAMES[i]}  ({lo}°…{hi}°)").pack()
+            tk.Label(parent, text=f"{self._head_ids[i]} {HEAD_NAMES[i]}  ({lo}°…{hi}°)").pack()
             sl = tk.Scale(
                 parent,
                 from_=lo, to=hi,
-                resolution=0.1, orient=tk.HORIZONTAL, length=360,
+                resolution=0.1, orient=tk.HORIZONTAL, length=320,
                 command=lambda v, idx=i: self.head_pos.__setitem__(idx, float(v)),
             )
             sl.pack()
             self._head_sliders.append(sl)
 
-            lbl = tk.Label(parent, text="--", font=("Courier", 9), anchor='w', width=55)
+            lbl = tk.Label(parent, text="--", font=("Courier", 8), anchor='w', width=55)
             lbl.pack(fill='x', padx=8, pady=(0, 6))
             self._head_status_lbls.append(lbl)
-
-        tk.Label(parent, text="Speed (all joints)").pack(pady=(8, 0))
-        self._head_spd_slider = tk.Scale(
-            parent, from_=0.0, to=1.0, resolution=0.01,
-            orient=tk.HORIZONTAL, length=360,
-            command=lambda v: self.head_speed.__setitem__(0, float(v)),
-        )
-        self._head_spd_slider.set(self.head_speed[0])
-        self._head_spd_slider.pack()
 
         tk.Button(parent, text="ZERO HEAD",
                   command=self._zero_head).pack(padx=8, pady=12, fill='x')
@@ -661,9 +674,7 @@ class MotionControlGUI(Node):
             'arm_position_current': float(self._arm_pcur[0]),
             'arm_speed_current': float(self._arm_scur[0]),
             'waist_pos': list(self.waist_pos),
-            'waist_speed': list(self.waist_speed),
             'head_pos': list(self.head_pos),
-            'head_speed': list(self.head_speed),
             'left_finger_pos': list(self.left_finger_pos),
             'right_finger_pos': list(self.right_finger_pos),
             'left_finger_vel': list(self.left_finger_vel),
@@ -734,18 +745,10 @@ class MotionControlGUI(Node):
         if waist_vals and len(self._waist_ids) > 0:
             self._waist_slider.set(float(waist_vals[0]))
             self.waist_pos[0] = float(waist_vals[0])
-        waist_speed_vals = data.get('waist_speed', [])
-        if waist_speed_vals:
-            self._waist_spd_slider.set(float(waist_speed_vals[0]))
-            self.waist_speed[0] = float(waist_speed_vals[0])
         for i, v in enumerate(data.get('head_pos', [])):
             if i < len(self._head_sliders):
                 self._head_sliders[i].set(float(v))
                 self.head_pos[i] = float(v)
-        head_speed_vals = data.get('head_speed', [])
-        if head_speed_vals:
-            self._head_spd_slider.set(float(head_speed_vals[0]))
-            self.head_speed[0] = float(head_speed_vals[0])
 
         # Hands (finger 5 remains fixed at 1.0)
         for i, v in enumerate(data.get('left_finger_pos', [])):
@@ -833,7 +836,7 @@ class MotionControlGUI(Node):
         top = tk.Frame(parent)
         top.pack(fill='x', padx=8, pady=(8, 4))
 
-        tk.Label(top, text='Saved positions', font=('Arial', 11, 'bold')).pack(side='left')
+        tk.Label(top, text='Saved positions', font=('Arial', 10, 'bold')).pack(side='left')
         tk.Button(top, text='Refresh', command=self._refresh_positions_tab).pack(side='right')
 
         self._positions_note_var = tk.StringVar(value='')
@@ -906,11 +909,11 @@ class MotionControlGUI(Node):
         main = tk.Frame(parent)
         main.pack(padx=8, pady=8)
 
-        lhf = tk.LabelFrame(main, text="LEFT HAND", font=('Arial', 11, 'bold'),
+        lhf = tk.LabelFrame(main, text="LEFT HAND", font=('Arial', 10, 'bold'),
                              relief=tk.RIDGE, borderwidth=2)
         lhf.grid(row=0, column=0, padx=8, pady=4)
 
-        rhf = tk.LabelFrame(main, text="RIGHT HAND", font=('Arial', 11, 'bold'),
+        rhf = tk.LabelFrame(main, text="RIGHT HAND", font=('Arial', 10, 'bold'),
                              relief=tk.RIDGE, borderwidth=2)
         rhf.grid(row=0, column=1, padx=8, pady=4)
 
@@ -941,7 +944,7 @@ class MotionControlGUI(Node):
 
         tk.Label(gf, text="Effort (all fingers)").pack(pady=(4, 0))
         eff_sl = tk.Scale(gf, from_=0.0, to=2.0, resolution=0.1,
-                          orient=tk.HORIZONTAL, length=400,
+                          orient=tk.HORIZONTAL, length=360,
                           command=lambda v: self.finger_effort.__setitem__(0, float(v)))
         eff_sl.set(self.finger_effort[0])
         eff_sl.pack()
@@ -949,7 +952,7 @@ class MotionControlGUI(Node):
 
         tk.Label(gf, text="Random update period  (s)").pack(pady=(8, 0))
         rp_sl = tk.Scale(gf, from_=0.05, to=2.0, resolution=0.05,
-                         orient=tk.HORIZONTAL, length=400,
+                         orient=tk.HORIZONTAL, length=360,
                          command=lambda v: self._random_period.__setitem__(0, float(v)))
         rp_sl.set(self._random_period[0])
         rp_sl.pack()
@@ -967,7 +970,7 @@ class MotionControlGUI(Node):
             tk.Label(row, text=f"Finger {name}", width=8).pack(side='left')
 
             ps = tk.Scale(row, from_=0.0, to=1.0, resolution=0.01,
-                          orient=tk.HORIZONTAL, length=180,
+                          orient=tk.HORIZONTAL, length=165,
                           command=lambda v, h=hand, idx=i: self._set_finger_pos(h, idx, v))
             if i == 4:
                 ps.set(1.0)
@@ -977,7 +980,7 @@ class MotionControlGUI(Node):
 
             tk.Label(row, text="vel:", width=4).pack(side='left')
             vs = tk.Scale(row, from_=0.0, to=2.0, resolution=0.1,
-                          orient=tk.HORIZONTAL, length=80,
+                          orient=tk.HORIZONTAL, length=72,
                           command=lambda v, h=hand, idx=i: self._set_finger_vel(h, idx, v))
             vs.set(1.0)
             vs.pack(side='left')
@@ -1178,8 +1181,8 @@ class MotionControlGUI(Node):
         c = SetMotorPosition()
         c.name = self._waist_ids[0]
         c.pos  = math.radians(float(self.waist_pos[0]))
-        c.spd  = float(self.waist_speed[0])
-        c.cur  = 8.0
+        c.spd  = float(self._leg_pspd[0])
+        c.cur  = float(self._leg_pcur[0])
         msg.cmds = [c]
         self._waist_pub.publish(msg)
 
@@ -1192,8 +1195,8 @@ class MotionControlGUI(Node):
             c = SetMotorPosition()
             c.name = mid
             c.pos  = math.radians(float(self.head_pos[i]))
-            c.spd  = float(self.head_speed[0])
-            c.cur  = 8.0
+            c.spd  = float(self._arm_pspd[0])
+            c.cur  = float(self._arm_pcur[0])
             msg.cmds.append(c)
         self._head_pub.publish(msg)
 
@@ -1233,14 +1236,14 @@ class MotionControlGUI(Node):
                     self._ll_pos_sl[i].set(pos_deg)
                     self.left_leg_pos[i] = pos_deg
                     self._left_leg_init[i] = True
-                self._ll_status[i].config(text=text)
+                self._ll_status[i].config(text=text, fg=_status_color(st))
             elif st.name in self._right_leg_ids:
                 i = self._right_leg_ids.index(st.name)
                 if not self._right_leg_init[i]:
                     self._rl_pos_sl[i].set(pos_deg)
                     self.right_leg_pos[i] = pos_deg
                     self._right_leg_init[i] = True
-                self._rl_status[i].config(text=text)
+                self._rl_status[i].config(text=text, fg=_status_color(st))
 
     def _arm_status_cb(self, msg):
         for st in msg.status:
@@ -1252,14 +1255,14 @@ class MotionControlGUI(Node):
                     self._la_pos_sl[i].set(pos_deg)
                     self.left_arm_pos[i] = pos_deg
                     self._left_arm_init[i] = True
-                self._la_status[i].config(text=text)
+                self._la_status[i].config(text=text, fg=_status_color(st))
             elif st.name in self._right_arm_ids:
                 i = self._right_arm_ids.index(st.name)
                 if not self._right_arm_init[i]:
                     self._ra_pos_sl[i].set(pos_deg)
                     self.right_arm_pos[i] = pos_deg
                     self._right_arm_init[i] = True
-                self._ra_status[i].config(text=text)
+                self._ra_status[i].config(text=text, fg=_status_color(st))
 
     def _waist_status_cb(self, msg):
         for st in msg.status:
@@ -1269,13 +1272,16 @@ class MotionControlGUI(Node):
                     self._waist_slider.set(pos_deg)
                     self.waist_pos[0] = pos_deg
                     self._waist_init[0] = True
-                self._waist_status_lbl.config(text=_status_text(st, pos_deg))
+                self._waist_status_lbl.config(text=_status_text(st, pos_deg), fg=_status_color(st))
 
     def _head_status_cb(self, msg):
         for st in msg.status:
             if st.name in self._head_ids:
                 i = self._head_ids.index(st.name)
-                self._head_status_lbls[i].config(text=_status_text(st, math.degrees(st.pos)))
+                self._head_status_lbls[i].config(
+                    text=_status_text(st, math.degrees(st.pos)),
+                    fg=_status_color(st),
+                )
 
     # =========================================================================
     # Motion service
