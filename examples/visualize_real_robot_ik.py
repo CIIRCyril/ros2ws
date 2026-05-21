@@ -1,0 +1,675 @@
+#!/usr/bin/env python3
+"""
+visualize_real_robot_ik.py — Live IK control of the S2full robot via PyBullet.
+
+Combines three scripts:
+  • visualize_robot.py     — init_pos.json loading and URDF setup
+  • visualize_robot_ik.py  — EE-target sliders and IK solver with coloured box
+  • visualize_real_robot.py — real-robot mirroring via ROS 2 motor-status topics
+
+Workflow each frame:
+  1. PyBullet joints are set to the real robot's current measured positions
+  2. IK is solved from that configuration to the slider-defined EE target
+  3. If sending is enabled (press X to toggle), the IK-solved angles are
+     published as position commands to the real robot's right arm + waist
+  4. As the robot moves the status callbacks drive PyBullet — the model
+     always reflects actual hardware state
+
+Keyboard (click PyBullet window first):
+    x   — toggle continuous IK command sending ON / OFF  (starts OFF — safe)
+    1   — open right hand
+    2   — close right hand
+    3   — open left hand
+    4   — close left hand
+    r   — save current pose to saved_positions.csv
+    t   — print real joint values and live EE pose
+    q   — quit
+
+⚠  WARNING — Sending IK commands (X key) moves physical hardware.
+   Ensure the robot is safely supported before enabling.
+"""
+
+import csv
+import datetime
+import json
+import math
+import os
+import threading
+import time
+
+import numpy as np
+import pybullet as p
+import pybullet_data
+import rclpy
+from rclpy.node import Node
+from bodyctrl_msgs.msg import CmdSetMotorPosition, SetMotorPosition, MotorStatusMsg
+from sensor_msgs.msg import JointState
+
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+ROBOT_KEY = 'S2full'
+
+POSITION_THRESHOLD    = 0.05   # metres — IK accuracy colouring
+ORIENTATION_THRESHOLD = 0.10   # radians
+
+# IK commands are sent only for these motor IDs (right arm + waist).
+# Legs are intentionally excluded for safety.
+IK_MOTOR_IDS   = set(range(21, 28)) | {31}   # right arm + waist
+LEFT_IK_MOTOR_IDS = set(range(11, 18))        # left arm
+
+# motor_id → URDF joint name
+MOTOR_TO_URDF = {
+    # Head
+    1: 'head_roll_joint',
+    2: 'head_pitch_joint',
+    3: 'head_yaw_joint',
+    # Left arm
+    11: 'shoulder_pitch_l_joint', 12: 'shoulder_roll_l_joint',
+    13: 'shoulder_yaw_l_joint',   14: 'elbow_pitch_l_joint',
+    15: 'wrist_yaw_l_joint',      16: 'wrist_pitch_l_joint',  17: 'wrist_roll_l_joint',
+    # Right arm
+    21: 'shoulder_pitch_r_rjoint', 22: 'shoulder_roll_r_rjoint',
+    23: 'shoulder_yaw_r_rjoint',   24: 'elbow_pitch_r_rjoint',
+    25: 'wrist_yaw_r_rjoint',      26: 'wrist_pitch_r_rjoint', 27: 'wrist_roll_r_rjoint',
+    # Waist
+    31: 'body_yaw_rjoint',
+    # Left leg
+    51: 'hip_roll_l_joint',    52: 'hip_pitch_l_joint',   53: 'hip_yaw_l_joint',
+    54: 'knee_pitch_l_joint',  55: 'ankle_pitch_l_joint', 56: 'ankle_roll_l_joint',
+    # Right leg
+    61: 'hip_roll_r_joint',    62: 'hip_pitch_r_joint',   63: 'hip_yaw_r_joint',
+    64: 'knee_pitch_r_joint',  65: 'ankle_pitch_r_joint', 66: 'ankle_roll_r_joint',
+}
+
+URDF_TO_MOTOR = {v: k for k, v in MOTOR_TO_URDF.items()}
+
+# Publishing route per motor group
+def _motor_route(motor_id: int):
+    """Return (topic_key, profile_spd, current_A) for motor ID."""
+    if 11 <= motor_id <= 27:
+        return 'arm',   0.5, 8.0
+    if 51 <= motor_id <= 66:
+        return 'leg',   0.5, 8.0
+    if motor_id == 31:
+        return 'waist', 0.2, 8.0
+    if 1 <= motor_id <= 3:
+        return 'head',  0.2, 2.0
+    return None, 0.5, 8.0
+
+# URDF → GUI position array mapping (for save-to-CSV feature)
+URDF_TO_GUI = {
+    'hip_roll_l_joint':    ('left_leg_pos',  0),
+    'hip_pitch_l_joint':   ('left_leg_pos',  1),
+    'hip_yaw_l_joint':     ('left_leg_pos',  2),
+    'knee_pitch_l_joint':  ('left_leg_pos',  3),
+    'ankle_pitch_l_joint': ('left_leg_pos',  4),
+    'ankle_roll_l_joint':  ('left_leg_pos',  5),
+    'hip_roll_r_joint':    ('right_leg_pos', 0),
+    'hip_pitch_r_joint':   ('right_leg_pos', 1),
+    'hip_yaw_r_joint':     ('right_leg_pos', 2),
+    'knee_pitch_r_joint':  ('right_leg_pos', 3),
+    'ankle_pitch_r_joint': ('right_leg_pos', 4),
+    'ankle_roll_r_joint':  ('right_leg_pos', 5),
+    'body_yaw_rjoint':          ('waist_pos',     0),
+    'head_roll_joint':          ('head_pos',      0),
+    'head_pitch_joint':         ('head_pos',      1),
+    'head_yaw_joint':           ('head_pos',      2),
+    'shoulder_pitch_l_joint':   ('left_arm_pos',  0),
+    'shoulder_roll_l_joint':    ('left_arm_pos',  1),
+    'shoulder_yaw_l_joint':     ('left_arm_pos',  2),
+    'elbow_pitch_l_joint':      ('left_arm_pos',  3),
+    'wrist_yaw_l_joint':        ('left_arm_pos',  4),
+    'wrist_pitch_l_joint':      ('left_arm_pos',  5),
+    'wrist_roll_l_joint':       ('left_arm_pos',  6),
+    'shoulder_pitch_r_rjoint':  ('right_arm_pos', 0),
+    'shoulder_roll_r_rjoint':   ('right_arm_pos', 1),
+    'shoulder_yaw_r_rjoint':    ('right_arm_pos', 2),
+    'elbow_pitch_r_rjoint':     ('right_arm_pos', 3),
+    'wrist_yaw_r_rjoint':       ('right_arm_pos', 4),
+    'wrist_pitch_r_rjoint':     ('right_arm_pos', 5),
+    'wrist_roll_r_rjoint':      ('right_arm_pos', 6),
+}
+
+
+# ---------------------------------------------------------------------------
+# ROS 2 node
+# ---------------------------------------------------------------------------
+
+class RobotMirrorNode(Node):
+    """Subscribes to motor-status topics; publishes position commands."""
+
+    def __init__(self):
+        super().__init__('visualize_real_robot_ik')
+        self._lock = threading.Lock()
+        self._motor_pos: dict[int, float] = {}   # motor_id → rad
+
+        for topic in ('/arm/status', '/leg/status', '/waist/status', '/head/status'):
+            self.create_subscription(MotorStatusMsg, topic, self._status_cb, 10)
+
+        self._pubs = {
+            'arm':   self.create_publisher(CmdSetMotorPosition, '/arm/cmd_pos',   10),
+            'leg':   self.create_publisher(CmdSetMotorPosition, '/leg/cmd_pos',   10),
+            'waist': self.create_publisher(CmdSetMotorPosition, '/waist/cmd_pos', 10),
+            'head':  self.create_publisher(CmdSetMotorPosition, '/head/cmd_pos',  10),
+        }
+        self._hand_right_pub = self.create_publisher(
+            JointState, '/inspire_hand/ctrl/right_hand', 10
+        )
+        self._hand_left_pub = self.create_publisher(
+            JointState, '/inspire_hand/ctrl/left_hand', 10
+        )
+
+    def _status_cb(self, msg: MotorStatusMsg):
+        with self._lock:
+            for st in msg.status:
+                self._motor_pos[st.name] = st.pos
+
+    def get_positions(self) -> dict[int, float]:
+        with self._lock:
+            return dict(self._motor_pos)
+
+    def send_positions(self, commands: dict[int, float]):
+        """Send a {motor_id: rad} dict to the robot. Groups by topic automatically."""
+        groups: dict[str, list] = {}
+        for motor_id, pos_rad in commands.items():
+            topic_key, spd, cur = _motor_route(motor_id)
+            if topic_key is None:
+                continue
+            c = SetMotorPosition()
+            c.name = motor_id
+            c.pos  = float(pos_rad)
+            c.spd  = spd
+            c.cur  = cur
+            groups.setdefault(topic_key, []).append(c)
+
+        for topic_key, cmds in groups.items():
+            msg = CmdSetMotorPosition()
+            msg.cmds = cmds
+            self._pubs[topic_key].publish(msg)
+
+    def send_gripper(self, motor_id_values: list[tuple[int, float]]):
+        """Send gripper open/close commands (uses 'arm' or 'hand' publisher)."""
+        msg = CmdSetMotorPosition()
+        msg.cmds = []
+        for motor_id, val in motor_id_values:
+            c = SetMotorPosition()
+            c.name = motor_id
+            c.pos  = float(val)
+            c.spd  = 0.5
+            c.cur  = 2.0
+            msg.cmds.append(c)
+        if msg.cmds:
+            self._pubs['arm'].publish(msg)
+
+    def send_right_hand(self, positions: list[float], velocities: list[float] | None = None):
+        """Publish a JointState command to the right Inspire hand."""
+        if velocities is None:
+            velocities = [1.0] * 6
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.name     = ['1', '2', '3', '4', '5', '6']
+        msg.position = list(positions)
+        msg.velocity = list(velocities)
+        msg.effort   = [1.0] * 6
+        self._hand_right_pub.publish(msg)
+
+    def send_left_hand(self, positions: list[float], velocities: list[float] | None = None):
+        """Publish a JointState command to the left Inspire hand."""
+        if velocities is None:
+            velocities = [1.0] * 6
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.name     = ['1', '2', '3', '4', '5', '6']
+        msg.position = list(positions)
+        msg.velocity = list(velocities)
+        msg.effort   = [1.0] * 6
+        self._hand_left_pub.publish(msg)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _prepare_urdf_for_pybullet(src_urdf: str, examples_dir: str) -> str:
+    with open(src_urdf, 'r', encoding='utf-8') as f:
+        text = f.read()
+    text = text.replace('package://ubtech/', '')
+    out = os.path.join(examples_dir, f'_{os.path.splitext(os.path.basename(src_urdf))[0]}_pybullet.urdf')
+    with open(out, 'w', encoding='utf-8') as f:
+        f.write(text)
+    return out
+
+
+def _load_init_pos(path: str) -> dict:
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {'r_dict': {}, 'g_dict': {}}
+
+
+def _save_to_gui_positions(robot_id: int, joint_idxs: list[int],
+                           joint_names: list[str], positions_file: str) -> str:
+    """Read current joint states (rad) and append a named position to saved_positions.csv."""
+    limb_sizes = {
+        'left_leg_pos': 6, 'right_leg_pos': 6,
+        'left_arm_pos': 7, 'right_arm_pos': 7,
+        'waist_pos': 1, 'head_pos': 3,
+    }
+    positions = {k: [0.0] * n for k, n in limb_sizes.items()}
+    for ji, jname in zip(joint_idxs, joint_names):
+        if jname not in URDF_TO_GUI:
+            continue
+        limb_key, idx = URDF_TO_GUI[jname]
+        positions[limb_key][idx] = round(math.degrees(p.getJointState(robot_id, ji)[0]), 2)
+
+    payload = {
+        'leg_mode': 'Position', 'arm_mode': 'Position',
+        'left_leg_pos': positions['left_leg_pos'],
+        'right_leg_pos': positions['right_leg_pos'],
+        'left_arm_pos': positions['left_arm_pos'],
+        'right_arm_pos': positions['right_arm_pos'],
+        'leg_profile_speed': 0.5,  'leg_position_current': 8.0, 'leg_speed_current': 8.0,
+        'arm_profile_speed': 0.5,  'arm_position_current': 8.0, 'arm_speed_current': 8.0,
+        'waist_pos': positions['waist_pos'], 'waist_speed': [0.2],
+        'head_pos': positions['head_pos'],   'head_speed': [0.2],
+        'left_finger_pos': [0.0] * 6, 'right_finger_pos': [0.0] * 6,
+        'left_finger_vel': [1.0] * 6, 'right_finger_vel': [1.0] * 6,
+        'hand_effort': [1.0],
+    }
+    name = datetime.datetime.now().strftime('ik_real_%Y%m%d_%H%M%S')
+    saved = {}
+    if os.path.exists(positions_file):
+        try:
+            with open(positions_file, 'r', newline='', encoding='utf-8') as f:
+                for row in csv.DictReader(f):
+                    n, pl = (row.get('name') or '').strip(), row.get('payload')
+                    if n and pl:
+                        try:
+                            saved[n] = json.loads(pl)
+                        except json.JSONDecodeError:
+                            pass
+        except OSError:
+            pass
+    saved[name] = payload
+    with open(positions_file, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=['name', 'payload'])
+        writer.writeheader()
+        for n in sorted(saved):
+            writer.writerow({'name': n, 'payload': json.dumps(saved[n])})
+    return name
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main():
+    examples_dir = os.path.dirname(os.path.abspath(__file__))
+    src_urdf     = os.path.join(examples_dir, 'S2full.urdf')
+
+    # ── Load init_pos.json ────────────────────────────────────────────────────
+    init_pos_path = os.path.join(examples_dir, 'init_pos.json')
+    init_pos = _load_init_pos(init_pos_path)
+    rd = init_pos.get('r_dict', {})
+    gd = init_pos.get('g_dict', {})
+    robot_info        = rd.get(ROBOT_KEY, {})
+    default_joint_ori = robot_info.get('default_joint_ori', [])
+    gripper_open      = gd.get(ROBOT_KEY, {}).get('open',  [])
+    gripper_close     = gd.get(ROBOT_KEY, {}).get('close', [])
+    print(f'init_pos.json: body={len(default_joint_ori)} joints, '
+          f'gripper open={len(gripper_open)}, close={len(gripper_close)}')
+
+    # ── ROS 2 ─────────────────────────────────────────────────────────────────
+    rclpy.init()
+    ros_node = RobotMirrorNode()
+    spin_thread = threading.Thread(target=rclpy.spin, args=(ros_node,), daemon=True)
+    spin_thread.start()
+
+    # Wait up to 3 s for first status messages
+    print('Waiting for robot status …', end='', flush=True)
+    deadline = time.time() + 3.0
+    while time.time() < deadline and not ros_node.get_positions():
+        time.sleep(0.05)
+    initial_pos = ros_node.get_positions()  # motor_id → rad
+    if initial_pos:
+        print(f' received {len(initial_pos)} motor positions.')
+    else:
+        print(' timed out — starting at init_pos.json values.')
+
+    # ── PyBullet ──────────────────────────────────────────────────────────────
+    p.connect(p.GUI)
+    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    p.setGravity(0, 0, -9.81)
+    p.loadURDF('plane.urdf', basePosition=[0, 0, -1.02])
+
+    urdf = _prepare_urdf_for_pybullet(src_urdf, examples_dir)
+    try:
+        robot_id = p.loadURDF(
+            urdf,
+            useFixedBase=True,
+            basePosition=[0.0, 0.0, 0.0],
+            baseOrientation=[0, 0, 0, 1],
+            flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT,
+        )
+        print(f'Loaded URDF: {src_urdf}')
+    except Exception as ex:
+        print(f'Error loading URDF: {ex}')
+        ros_node.destroy_node(); rclpy.shutdown()
+        return
+
+    num_joints = p.getNumJoints(robot_id)
+
+    # Build name → joint-index map
+    name_to_joint: dict[str, int] = {}
+    for ji in range(num_joints):
+        info = p.getJointInfo(robot_id, ji)
+        name_to_joint[info[1].decode('utf-8')] = ji
+
+    # Separate gripper joints and body joints
+    non_fixed_idxs:  list[int] = []
+    non_fixed_names: list[str] = []
+    gjoint_idxs:     list[int] = []
+
+    for ji in range(num_joints):
+        info = p.getJointInfo(robot_id, ji)
+        if info[2] == p.JOINT_FIXED:
+            continue
+        jname = info[1].decode('utf-8')
+        non_fixed_idxs.append(ji)
+        non_fixed_names.append(jname)
+        if 'gjoint' in jname:
+            gjoint_idxs.append(ji)
+
+    gjoint_set = set(gjoint_idxs)
+
+    # Initialise joints: prefer live robot positions, fall back to init_pos.json
+    for i, (ji, jname) in enumerate(zip(non_fixed_idxs, non_fixed_names)):
+        motor_id = URDF_TO_MOTOR.get(jname)
+        if motor_id is not None and motor_id in initial_pos:
+            p.resetJointState(robot_id, ji, initial_pos[motor_id])
+        elif i < len(default_joint_ori):
+            p.resetJointState(robot_id, ji, default_joint_ori[i])
+
+    # Override gripper with stored open values
+    for i, ji in enumerate(gjoint_idxs):
+        if i < len(gripper_open):
+            p.resetJointState(robot_id, ji, gripper_open[i])
+
+    # Find end-effector link
+    ee_index = -1
+    for ji in range(num_joints):
+        if p.getJointInfo(robot_id, ji)[12].decode('utf-8') == 'endeffector':
+            ee_index = ji
+            print(f'End effector at joint index {ee_index}')
+            break
+    if ee_index == -1:
+        # Fall back to last non-gripper joint
+        ee_index = [ji for ji in non_fixed_idxs if ji not in gjoint_set][-1]
+        print(f'Warning: "endeffector" link not found; using joint {ee_index}')
+
+    # IK joint list — non-fixed, non-gripper, in joint-index order
+    ik_joint_idxs  = [ji for ji in non_fixed_idxs if ji not in gjoint_set]
+    ik_joint_names = [non_fixed_names[non_fixed_idxs.index(ji)] for ji in ik_joint_idxs]
+
+    # Find left end-effector link (named 'endeffectol' in the URDF)
+    ee_index_l = -1
+    for ji in range(num_joints):
+        if p.getJointInfo(robot_id, ji)[12].decode('utf-8') == 'endeffectol':
+            ee_index_l = ji
+            print(f'Left end effector at joint index {ee_index_l}')
+            break
+    if ee_index_l == -1:
+        print('Warning: "endeffectol" link not found; left IK disabled')
+
+    # Initial EE pose from current FK (after joints are initialised)
+    ls = p.getLinkState(robot_id, ee_index)
+    ee_init_pos   = list(ls[0])
+    ee_init_euler = list(p.getEulerFromQuaternion(ls[1]))
+    print(f'Initial R EE pos:   {[round(v,3) for v in ee_init_pos]}')
+    print(f'Initial R EE euler: {[round(v,3) for v in ee_init_euler]}')
+
+    # Left EE initial pose
+    if ee_index_l != -1:
+        ls_l = p.getLinkState(robot_id, ee_index_l)
+        ee_init_pos_l   = list(ls_l[0])
+        ee_init_euler_l = list(p.getEulerFromQuaternion(ls_l[1]))
+    else:
+        ee_init_pos_l   = [0.0, 0.2, 0.3]
+        ee_init_euler_l = [0.0, 0.0, 0.0]
+    print(f'Initial L EE pos:   {[round(v,3) for v in ee_init_pos_l]}')
+    print(f'Initial L EE euler: {[round(v,3) for v in ee_init_euler_l]}')
+
+    # Visual target boxes  (red = right, cyan = left)
+    box_vis_r = p.createVisualShape(
+        p.GEOM_BOX, halfExtents=[0.02] * 3, rgbaColor=[1, 0, 0, 0.6]
+    )
+    box_id = p.createMultiBody(
+        baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=box_vis_r,
+        basePosition=ee_init_pos,
+        baseOrientation=p.getQuaternionFromEuler(ee_init_euler),
+    )
+
+    box_vis_l = p.createVisualShape(
+        p.GEOM_BOX, halfExtents=[0.02] * 3, rgbaColor=[0, 0.8, 1, 0.6]
+    )
+    box_id_l = p.createMultiBody(
+        baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=box_vis_l,
+        basePosition=ee_init_pos_l,
+        baseOrientation=p.getQuaternionFromEuler(ee_init_euler_l),
+    )
+
+    # IK target sliders — RIGHT arm
+    x_sl     = p.addUserDebugParameter('R EE Target X',     0.2,    0.7,  ee_init_pos[0])
+    y_sl     = p.addUserDebugParameter('R EE Target Y',    -1.0,    0.2,  ee_init_pos[1])
+    z_sl     = p.addUserDebugParameter('R EE Target Z',     0.1,    0.5,  ee_init_pos[2])
+    roll_sl  = p.addUserDebugParameter('R EE Roll',  -math.pi, math.pi, ee_init_euler[0])
+    pitch_sl = p.addUserDebugParameter('R EE Pitch', -math.pi, math.pi, ee_init_euler[1])
+    yaw_sl   = p.addUserDebugParameter('R EE Yaw',   -math.pi, math.pi, ee_init_euler[2])
+
+    # IK target sliders — LEFT arm
+    lx_sl     = p.addUserDebugParameter('L EE Target X',    0.2,    0.7,  ee_init_pos_l[0])
+    ly_sl     = p.addUserDebugParameter('L EE Target Y',    -0.2,    1.0,  ee_init_pos_l[1])
+    lz_sl     = p.addUserDebugParameter('L EE Target Z',     0.1,    0.5,  ee_init_pos_l[2])
+    lroll_sl  = p.addUserDebugParameter('L EE Roll',  -math.pi, math.pi, ee_init_euler_l[0])
+    lpitch_sl = p.addUserDebugParameter('L EE Pitch', -math.pi, math.pi, ee_init_euler_l[1])
+    lyaw_sl   = p.addUserDebugParameter('L EE Yaw',   -math.pi, math.pi, ee_init_euler_l[2])
+
+    p.resetDebugVisualizerCamera(
+        cameraDistance=2.0, cameraYaw=45, cameraPitch=-30,
+        cameraTargetPosition=[0, 0, 0.5],
+    )
+
+    # Status overlay text
+    send_label_id = p.addUserDebugText(
+        'IK SEND: OFF  (X=toggle | 1/2=R hand open/close | 3/4=L hand open/close | r=save | t=print | q=quit)',
+        textPosition=[0, 0, 1.3],
+        textColorRGB=[0.9, 0.4, 0.1],
+        textSize=1.0,
+    )
+
+    ik_sending = False   # toggled by 'x'
+
+    print('\nControls: X=toggle IK send  |  1/2=R hand open/close  |  3/4=L hand open/close  |  r=save  |  t=print  |  q=quit')
+    print('⚠  IK sending starts OFF — press X to enable after ensuring robot is safe.')
+
+    try:
+        while True:
+            keys = p.getKeyboardEvents()
+
+            # 'q' — quit
+            if ord('q') in keys and keys[ord('q')] & p.KEY_WAS_TRIGGERED:
+                print('Quitting.')
+                break
+
+            # 'x' — toggle IK sending
+            if ord('x') in keys and keys[ord('x')] & p.KEY_WAS_TRIGGERED:
+                ik_sending = not ik_sending
+                state_str = 'ON  ⚡' if ik_sending else 'OFF'
+                color = [0.2, 0.9, 0.2] if ik_sending else [0.9, 0.4, 0.1]
+                p.addUserDebugText(
+                    f'IK SEND: {state_str}  (X=toggle | 1/2=R hand open/close | 3/4=L hand open/close | r=save | t=print | q=quit)',
+                    textPosition=[0, 0, 1.3],
+                    textColorRGB=color, textSize=1.0,
+                    replaceItemUniqueId=send_label_id,
+                )
+                print(f'[x] IK sending {"ENABLED" if ik_sending else "DISABLED"}')
+
+            # '1' — open right hand
+            if ord('1') in keys and keys[ord('1')] & p.KEY_WAS_TRIGGERED:
+                open_pos = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+                threading.Thread(
+                    target=ros_node.send_right_hand, args=(open_pos,), daemon=True
+                ).start()
+                print(f'[1] Right hand open')
+
+            # '2' — close right hand
+            if ord('2') in keys and keys[ord('2')] & p.KEY_WAS_TRIGGERED:
+                close_pos = [0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+                threading.Thread(
+                    target=ros_node.send_right_hand, args=(close_pos,), daemon=True
+                ).start()
+                print(f'[2] Right hand close')
+
+            # '3' — open left hand
+            if ord('3') in keys and keys[ord('3')] & p.KEY_WAS_TRIGGERED:
+                open_pos = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+                threading.Thread(
+                    target=ros_node.send_left_hand, args=(open_pos,), daemon=True
+                ).start()
+                print(f'[3] Left hand open')
+
+            # '4' — close left hand
+            if ord('4') in keys and keys[ord('4')] & p.KEY_WAS_TRIGGERED:
+                close_pos = [0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+                threading.Thread(
+                    target=ros_node.send_left_hand, args=(close_pos,), daemon=True
+                ).start()
+                print(f'[4] Left hand close')
+
+            # 'r' — save current real pose to saved_positions.csv
+            if ord('r') in keys and keys[ord('r')] & p.KEY_WAS_TRIGGERED:
+                positions_file = os.path.join(examples_dir, 'saved_positions.csv')
+                name = _save_to_gui_positions(
+                    robot_id, ik_joint_idxs, ik_joint_names, positions_file
+                )
+                print(f"[r] Saved pose '{name}' → {positions_file}")
+
+            # 't' — print live state
+            if ord('t') in keys and keys[ord('t')] & p.KEY_WAS_TRIGGERED:
+                real_pos = ros_node.get_positions()
+                print(f'[t] Real robot: {len(real_pos)} motors')
+                for mid in sorted(real_pos):
+                    print(f'    motor {mid:2d}: {math.degrees(real_pos[mid]):7.2f}°')
+                ls_now = p.getLinkState(robot_id, ee_index)
+                ee_now = list(ls_now[0])
+                ee_euler_now = list(p.getEulerFromQuaternion(ls_now[1]))
+                print(f'[t] Real EE pos:   {[round(v,4) for v in ee_now]}')
+                print(f'[t] Real EE euler: {[round(v,4) for v in ee_euler_now]}')
+
+            # ── Mirror real robot → PyBullet ────────────────────────────────
+            real_pos = ros_node.get_positions()
+            for motor_id, urdf_name in MOTOR_TO_URDF.items():
+                ji = name_to_joint.get(urdf_name)
+                if ji is not None and motor_id in real_pos:
+                    p.resetJointState(robot_id, ji, real_pos[motor_id])
+
+            # ── Read EE targets from sliders ────────────────────────────────
+            target_pos   = [p.readUserDebugParameter(x_sl),
+                            p.readUserDebugParameter(y_sl),
+                            p.readUserDebugParameter(z_sl)]
+            target_euler = [p.readUserDebugParameter(roll_sl),
+                            p.readUserDebugParameter(pitch_sl),
+                            p.readUserDebugParameter(yaw_sl)]
+            target_quat  = p.getQuaternionFromEuler(target_euler)
+
+            target_pos_l   = [p.readUserDebugParameter(lx_sl),
+                              p.readUserDebugParameter(ly_sl),
+                              p.readUserDebugParameter(lz_sl)]
+            target_euler_l = [p.readUserDebugParameter(lroll_sl),
+                              p.readUserDebugParameter(lpitch_sl),
+                              p.readUserDebugParameter(lyaw_sl)]
+            target_quat_l  = p.getQuaternionFromEuler(target_euler_l)
+
+            # ── Solve IK — RIGHT arm ────────────────────────────────────────
+            ik_solution = p.calculateInverseKinematics(
+                robot_id, ee_index, target_pos, target_quat
+            )
+            ik_commands: dict[int, float] = {}
+            for sol_idx, (ji, jname) in enumerate(zip(ik_joint_idxs, ik_joint_names)):
+                motor_id = URDF_TO_MOTOR.get(jname)
+                if motor_id is not None and motor_id in IK_MOTOR_IDS:
+                    ik_commands[motor_id] = ik_solution[sol_idx]
+
+            # ── Solve IK — LEFT arm ─────────────────────────────────────────
+            ik_commands_l: dict[int, float] = {}
+            if ee_index_l != -1:
+                ik_solution_l = p.calculateInverseKinematics(
+                    robot_id, ee_index_l, target_pos_l, target_quat_l
+                )
+                for sol_idx, (ji, jname) in enumerate(zip(ik_joint_idxs, ik_joint_names)):
+                    motor_id = URDF_TO_MOTOR.get(jname)
+                    if motor_id is not None and motor_id in LEFT_IK_MOTOR_IDS:
+                        ik_commands_l[motor_id] = ik_solution_l[sol_idx]
+
+            # ── Send IK commands to real robot (if enabled) ─────────────────
+            if ik_sending and ik_commands:
+                threading.Thread(
+                    target=ros_node.send_positions,
+                    args=(ik_commands,),
+                    daemon=True,
+                ).start()
+            if ik_sending and ik_commands_l:
+                threading.Thread(
+                    target=ros_node.send_positions,
+                    args=(ik_commands_l,),
+                    daemon=True,
+                ).start()
+
+            # ── Update target boxes ─────────────────────────────────────────
+            p.resetBasePositionAndOrientation(box_id,   target_pos,   target_quat)
+            p.resetBasePositionAndOrientation(box_id_l, target_pos_l, target_quat_l)
+
+            # ── Colour boxes by IK accuracy ─────────────────────────────────
+            ls = p.getLinkState(robot_id, ee_index)
+            ee_pos_now   = np.array(ls[0])
+            ee_euler_now = np.array(p.getEulerFromQuaternion(ls[1]))
+            pos_ok = np.linalg.norm(ee_pos_now - np.array(target_pos)) < POSITION_THRESHOLD
+            ori_ok = np.linalg.norm(ee_euler_now - np.array(target_euler)) < ORIENTATION_THRESHOLD
+            if pos_ok and ori_ok:
+                colour = [0, 1, 0, 0.6]
+            elif pos_ok or ori_ok:
+                colour = [0, 0.5, 1, 0.6]
+            else:
+                colour = [1, 0, 0, 0.6]
+            p.changeVisualShape(box_id, -1, rgbaColor=colour)
+
+            if ee_index_l != -1:
+                ls_l = p.getLinkState(robot_id, ee_index_l)
+                ee_pos_now_l   = np.array(ls_l[0])
+                ee_euler_now_l = np.array(p.getEulerFromQuaternion(ls_l[1]))
+                pos_ok_l = np.linalg.norm(ee_pos_now_l - np.array(target_pos_l)) < POSITION_THRESHOLD
+                ori_ok_l = np.linalg.norm(ee_euler_now_l - np.array(target_euler_l)) < ORIENTATION_THRESHOLD
+                if pos_ok_l and ori_ok_l:
+                    colour_l = [0, 1, 0, 0.6]
+                elif pos_ok_l or ori_ok_l:
+                    colour_l = [0, 0.5, 1, 0.6]
+                else:
+                    colour_l = [0, 0.8, 1, 0.6]   # default cyan when both off
+                p.changeVisualShape(box_id_l, -1, rgbaColor=colour_l)
+
+            p.stepSimulation()
+            time.sleep(0.02)   # ~50 Hz
+
+    except Exception as ex:
+        print(f'Simulation error: {ex}')
+    finally:
+        ros_node.destroy_node()
+        rclpy.shutdown()
+        p.disconnect()
+
+
+if __name__ == '__main__':
+    main()

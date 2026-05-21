@@ -1082,6 +1082,26 @@
       </geometry>
     </collision>
   </link>
+  <link name="endeffectol">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="endeffectol_joint" type="fixed">
+    <parent link="L_base_link"/>
+    <child link="endeffectol"/>
+    <origin rpy="1.57 -1.57 -1.57" xyz="0.05 0.0 0.1"/>
+  </joint>
   <!-- 左手拇指1：left_thumb_1 -->
   <link name="left_thumb_1">
     <inertial>

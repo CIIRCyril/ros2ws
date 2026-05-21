@@ -244,6 +244,7 @@ def main():
 
     # ── PyBullet ──────────────────────────────────────────────────────────────
     p.connect(p.GUI)
+    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     p.setGravity(0, 0, -9.81)
     p.loadURDF('plane.urdf', basePosition=[0, 0, -1.02])
@@ -276,8 +277,8 @@ def main():
             p.resetJointState(robot_id, name_to_joint[urdf_name], initial_pos[motor_id])
 
     p.resetDebugVisualizerCamera(
-        cameraDistance=1.5, cameraYaw=-60, cameraPitch=-20,
-        cameraTargetPosition=[0, 0, 0.2],
+        cameraDistance=1.05, cameraYaw=80, cameraPitch=-25,
+        cameraTargetPosition=[0, 0, 0.0],
     )
 
     # ── Status label ──────────────────────────────────────────────────────────
