@@ -22,6 +22,7 @@ Keyboard (click PyBullet window first):
     3   — open left hand
     4   — close left hand
     r   — save current pose to saved_positions.csv
+    7   — list, select and execute a saved position from saved_positions.csv
     t   — print real joint values and live EE pose
     9   — record current body pose to trajectory buffer
     0   — save trajectory buffer to trajectories.csv (prompts for name)
@@ -358,6 +359,46 @@ def _save_trajectory(traj_name: str, waypoints: list, traj_file: str):
             writer.writerow({'name': n, 'waypoints': json.dumps(wps)})
 
 
+def _load_saved_positions(positions_file: str) -> dict:
+    """Load all saved positions from saved_positions.csv; returns {name: payload_dict}."""
+    positions: dict = {}
+    if not os.path.exists(positions_file):
+        return positions
+    try:
+        with open(positions_file, 'r', newline='', encoding='utf-8') as f:
+            for row in csv.DictReader(f):
+                n = (row.get('name') or '').strip()
+                pl = row.get('payload')
+                if n and pl:
+                    try:
+                        positions[n] = json.loads(pl)
+                    except json.JSONDecodeError:
+                        pass
+    except OSError:
+        pass
+    return positions
+
+
+def _execute_saved_position(payload: dict, ros_node):
+    """Send a single saved-position payload (degrees) to the robot."""
+    _LIMB_TO_MOTORS = {
+        'head_pos':      [1,  2,  3],
+        'left_arm_pos':  [11, 12, 13, 14, 15, 16, 17],
+        'right_arm_pos': [21, 22, 23, 24, 25, 26, 27],
+        'waist_pos':     [31],
+        'left_leg_pos':  [51, 52, 53, 54, 55, 56],
+        'right_leg_pos': [61, 62, 63, 64, 65, 66],
+    }
+    commands: dict[int, float] = {}
+    for limb_key, motor_ids in _LIMB_TO_MOTORS.items():
+        angles = payload.get(limb_key, [])
+        for idx, motor_id in enumerate(motor_ids):
+            if idx < len(angles):
+                commands[motor_id] = math.radians(angles[idx])
+    ros_node.send_positions(commands)
+    print('[7] Position sent to robot.')
+
+
 def _load_trajectories(traj_file: str) -> dict:
     """Load all trajectories from trajectories.csv; returns {name: [waypoints]}."""
     trajectories: dict = {}
@@ -378,8 +419,15 @@ def _load_trajectories(traj_file: str) -> dict:
     return trajectories
 
 
-def _execute_trajectory(waypoints: list, ros_node, step_delay: float = 2.0):
-    """Send each trajectory waypoint to the robot with step_delay seconds between steps."""
+def _execute_trajectory(waypoints: list, ros_node, step_delay: float = 2.0,
+                        interp_hz: float = 20.0, traj_active: dict | None = None):
+    """Send trajectory waypoints with continuous interpolated commands at interp_hz.
+
+    Instead of one burst per waypoint, positions are streamed continuously so
+    the motor controllers always have a fresh setpoint — matching the behaviour
+    of the IK-sending loop.  IK sending is suppressed via traj_active while
+    this function runs.
+    """
     _LIMB_TO_MOTORS = {
         'head_pos':      [1,  2,  3],
         'left_arm_pos':  [11, 12, 13, 14, 15, 16, 17],
@@ -388,19 +436,44 @@ def _execute_trajectory(waypoints: list, ros_node, step_delay: float = 2.0):
         'left_leg_pos':  [51, 52, 53, 54, 55, 56],
         'right_leg_pos': [61, 62, 63, 64, 65, 66],
     }
-    print(f'[traj] Executing {len(waypoints)} waypoints ({step_delay}s each) …')
-    for i, wp in enumerate(waypoints):
-        commands: dict[int, float] = {}
+
+    def _interp_commands(wp_a: dict, wp_b: dict, alpha: float) -> dict[int, float]:
+        cmds: dict[int, float] = {}
         for limb_key, motor_ids in _LIMB_TO_MOTORS.items():
-            angles = wp.get(limb_key, [])
+            a_ang = wp_a.get(limb_key, [])
+            b_ang = wp_b.get(limb_key, [])
             for idx, motor_id in enumerate(motor_ids):
-                if idx < len(angles):
-                    commands[motor_id] = math.radians(angles[idx])
-        ros_node.send_positions(commands)
-        print(f'[traj] Step {i + 1}/{len(waypoints)}')
-        if i < len(waypoints) - 1:
-            time.sleep(step_delay)
-    print('[traj] Done.')
+                a = float(a_ang[idx]) if idx < len(a_ang) else 0.0
+                b = float(b_ang[idx]) if idx < len(b_ang) else 0.0
+                cmds[motor_id] = math.radians(a + alpha * (b - a))
+        return cmds
+
+    if traj_active is not None:
+        traj_active['value'] = True
+    try:
+        n_interp  = max(1, int(step_delay * interp_hz))
+        sleep_dt  = 1.0 / interp_hz
+        print(f'[traj] Executing {len(waypoints)} waypoints '
+              f'({step_delay}s × {interp_hz:.0f}Hz per step) …')
+
+        # Hold first waypoint position
+        ros_node.send_positions(_interp_commands(waypoints[0], waypoints[0], 1.0))
+        print(f'[traj] Waypoint 1/{len(waypoints)}')
+
+        # Stream interpolated commands between consecutive waypoints
+        for i in range(1, len(waypoints)):
+            for step in range(1, n_interp + 1):
+                alpha = step / n_interp
+                ros_node.send_positions(
+                    _interp_commands(waypoints[i - 1], waypoints[i], alpha)
+                )
+                time.sleep(sleep_dt)
+            print(f'[traj] Waypoint {i + 1}/{len(waypoints)}')
+
+        print('[traj] Done.')
+    finally:
+        if traj_active is not None:
+            traj_active['value'] = False
 
 
 # ---------------------------------------------------------------------------
@@ -585,7 +658,7 @@ def main():
 
     # Status overlay text
     send_label_id = p.addUserDebugText(
-        'IK SEND: OFF  (X=toggle | 1/2=R hand | 3/4=L hand | r=save | 9=rec | 0=traj | 8=exec | t=print | q=quit)',
+        'IK SEND: OFF  (X=toggle | 1/2=R hand | 3/4=L hand | r=save | 7=pos | 9=rec | 0=traj | 8=exec | t=print | q=quit)',
 
         textPosition=[0, 0, 1.3],
         textColorRGB=[0.9, 0.4, 0.1],
@@ -595,8 +668,9 @@ def main():
     ik_sending = False       # toggled by 'x'
     trajectory_waypoints: list = []   # accumulated by '9'
     _input_active = {'value': False}  # guard against concurrent input prompts
+    _traj_active  = {'value': False}  # True while a trajectory is streaming
 
-    print('\nControls: X=toggle IK send  |  1/2=R hand  |  3/4=L hand  |  r=save  |  9=rec wp  |  0=save traj  |  8=exec traj  |  t=print  |  q=quit')
+    print('\nControls: X=toggle IK send  |  1/2=R hand  |  3/4=L hand  |  r=save  |  7=exec pos  |  9=rec wp  |  0=save traj  |  8=exec traj  |  t=print  |  q=quit')
     print('⚠  IK sending starts OFF — press X to enable after ensuring robot is safe.')
 
     try:
@@ -621,7 +695,7 @@ def main():
                 state_str = 'ON  ⚡' if ik_sending else 'OFF'
                 color = [0.2, 0.9, 0.2] if ik_sending else [0.9, 0.4, 0.1]
                 p.addUserDebugText(
-                    f'IK SEND: {state_str}  (X=toggle | 1/2=R hand | 3/4=L hand | r=save | 9=rec | 0=traj | 8=exec | t=print | q=quit)',
+                    f'IK SEND: {state_str}  (X=toggle | 1/2=R hand | 3/4=L hand | r=save | 7=pos | 9=rec | 0=traj | 8=exec | t=print | q=quit)',
 
                     textPosition=[0, 0, 1.3],
                     textColorRGB=color, textSize=1.0,
@@ -711,12 +785,52 @@ def main():
                             _input_active['value'] = False
                     threading.Thread(target=_save_traj_thread, daemon=True).start()
 
+            # '7' — list and execute a saved position
+            if ord('7') in keys and keys[ord('7')] & p.KEY_WAS_TRIGGERED:
+                if _input_active['value']:
+                    print('[7] Another input prompt is already active.')
+                else:
+                    def _exec_pos_thread():
+                        _input_active['value'] = True
+                        try:
+                            positions_file = os.path.join(examples_dir, 'saved_positions.csv')
+                            saved_pos = _load_saved_positions(positions_file)
+                            if not saved_pos:
+                                print('[7] No saved positions found in saved_positions.csv')
+                                return
+                            names = sorted(saved_pos.keys())
+                            print('[7] Saved positions:')
+                            for i, n in enumerate(names):
+                                print(f'    {i + 1}. {n}')
+                            sel = input('[7] Select position (number or name): ').strip()
+                            chosen = None
+                            try:
+                                idx = int(sel) - 1
+                                if 0 <= idx < len(names):
+                                    chosen = names[idx]
+                            except ValueError:
+                                if sel in saved_pos:
+                                    chosen = sel
+                            if chosen is None:
+                                print('[7] Invalid selection.')
+                                return
+                            print(f"[7] Moving to position '{chosen}' …")
+                        finally:
+                            _input_active['value'] = False
+                        if chosen:
+                            threading.Thread(
+                                target=_execute_saved_position,
+                                args=(saved_pos[chosen], ros_node),
+                                daemon=True,
+                            ).start()
+                    threading.Thread(target=_exec_pos_thread, daemon=True).start()
+
             # '8' — list and execute a saved trajectory
             if ord('8') in keys and keys[ord('8')] & p.KEY_WAS_TRIGGERED:
                 if _input_active['value']:
                     print('[8] Another input prompt is already active.')
                 else:
-                    def _exec_traj_thread():
+                    def _exec_traj_thread(traj_active=_traj_active):
                         _input_active['value'] = True
                         try:
                             traj_file = os.path.join(examples_dir, 'trajectories.csv')
@@ -747,6 +861,7 @@ def main():
                             threading.Thread(
                                 target=_execute_trajectory,
                                 args=(trajs[chosen], ros_node),
+                                kwargs={'traj_active': traj_active},
                                 daemon=True,
                             ).start()
                     threading.Thread(target=_exec_traj_thread, daemon=True).start()
@@ -797,13 +912,15 @@ def main():
                         ik_commands_l[motor_id] = ik_solution_l[sol_idx]
 
             # ── Send IK commands to real robot (if enabled) ─────────────────
-            if ik_sending and ik_commands:
+            # IK is suppressed while a trajectory is streaming so its continuous
+            # setpoints are not overridden by the IK loop.
+            if ik_sending and ik_commands and not _traj_active['value']:
                 threading.Thread(
                     target=ros_node.send_positions,
                     args=(ik_commands,),
                     daemon=True,
                 ).start()
-            if ik_sending and ik_commands_l:
+            if ik_sending and ik_commands_l and not _traj_active['value']:
                 threading.Thread(
                     target=ros_node.send_positions,
                     args=(ik_commands_l,),
