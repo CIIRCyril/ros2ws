@@ -23,6 +23,9 @@ Keyboard (click PyBullet window first):
     4   — close left hand
     r   — save current pose to saved_positions.csv
     t   — print real joint values and live EE pose
+    9   — record current body pose to trajectory buffer
+    0   — save trajectory buffer to trajectories.csv (prompts for name)
+    8   — list, select and execute a saved trajectory on the robot
     q   — quit
 
 ⚠  WARNING — Sending IK commands (X key) moves physical hardware.
@@ -302,6 +305,104 @@ def _save_to_gui_positions(robot_id: int, joint_idxs: list[int],
     return name
 
 
+def _get_current_pose_payload(robot_id: int, joint_idxs: list[int], joint_names: list[str]) -> dict:
+    """Return a payload dict of current joint angles (degrees) from PyBullet."""
+    limb_sizes = {
+        'left_leg_pos': 6, 'right_leg_pos': 6,
+        'left_arm_pos': 7, 'right_arm_pos': 7,
+        'waist_pos': 1, 'head_pos': 3,
+    }
+    positions = {k: [0.0] * n for k, n in limb_sizes.items()}
+    for ji, jname in zip(joint_idxs, joint_names):
+        if jname not in URDF_TO_GUI:
+            continue
+        limb_key, idx = URDF_TO_GUI[jname]
+        positions[limb_key][idx] = round(math.degrees(p.getJointState(robot_id, ji)[0]), 2)
+    return {
+        'leg_mode': 'Position', 'arm_mode': 'Position',
+        'left_leg_pos':  positions['left_leg_pos'],
+        'right_leg_pos': positions['right_leg_pos'],
+        'left_arm_pos':  positions['left_arm_pos'],
+        'right_arm_pos': positions['right_arm_pos'],
+        'leg_profile_speed': 0.5,  'leg_position_current': 8.0, 'leg_speed_current': 8.0,
+        'arm_profile_speed': 0.5,  'arm_position_current': 8.0, 'arm_speed_current': 8.0,
+        'waist_pos': positions['waist_pos'], 'waist_speed': [0.2],
+        'head_pos':  positions['head_pos'],  'head_speed':  [0.2],
+        'left_finger_pos':  [0.0] * 6, 'right_finger_pos': [0.0] * 6,
+        'left_finger_vel':  [1.0] * 6, 'right_finger_vel': [1.0] * 6,
+        'hand_effort': [1.0],
+    }
+
+
+def _save_trajectory(traj_name: str, waypoints: list, traj_file: str):
+    """Append / overwrite a named trajectory in trajectories.csv."""
+    trajectories: dict = {}
+    if os.path.exists(traj_file):
+        try:
+            with open(traj_file, 'r', newline='', encoding='utf-8') as f:
+                for row in csv.DictReader(f):
+                    n = (row.get('name') or '').strip()
+                    wps = row.get('waypoints')
+                    if n and wps:
+                        try:
+                            trajectories[n] = json.loads(wps)
+                        except json.JSONDecodeError:
+                            pass
+        except OSError:
+            pass
+    trajectories[traj_name] = waypoints
+    with open(traj_file, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=['name', 'waypoints'])
+        writer.writeheader()
+        for n, wps in trajectories.items():
+            writer.writerow({'name': n, 'waypoints': json.dumps(wps)})
+
+
+def _load_trajectories(traj_file: str) -> dict:
+    """Load all trajectories from trajectories.csv; returns {name: [waypoints]}."""
+    trajectories: dict = {}
+    if not os.path.exists(traj_file):
+        return trajectories
+    try:
+        with open(traj_file, 'r', newline='', encoding='utf-8') as f:
+            for row in csv.DictReader(f):
+                n = (row.get('name') or '').strip()
+                wps = row.get('waypoints')
+                if n and wps:
+                    try:
+                        trajectories[n] = json.loads(wps)
+                    except json.JSONDecodeError:
+                        pass
+    except OSError:
+        pass
+    return trajectories
+
+
+def _execute_trajectory(waypoints: list, ros_node, step_delay: float = 2.0):
+    """Send each trajectory waypoint to the robot with step_delay seconds between steps."""
+    _LIMB_TO_MOTORS = {
+        'head_pos':      [1,  2,  3],
+        'left_arm_pos':  [11, 12, 13, 14, 15, 16, 17],
+        'right_arm_pos': [21, 22, 23, 24, 25, 26, 27],
+        'waist_pos':     [31],
+        'left_leg_pos':  [51, 52, 53, 54, 55, 56],
+        'right_leg_pos': [61, 62, 63, 64, 65, 66],
+    }
+    print(f'[traj] Executing {len(waypoints)} waypoints ({step_delay}s each) …')
+    for i, wp in enumerate(waypoints):
+        commands: dict[int, float] = {}
+        for limb_key, motor_ids in _LIMB_TO_MOTORS.items():
+            angles = wp.get(limb_key, [])
+            for idx, motor_id in enumerate(motor_ids):
+                if idx < len(angles):
+                    commands[motor_id] = math.radians(angles[idx])
+        ros_node.send_positions(commands)
+        print(f'[traj] Step {i + 1}/{len(waypoints)}')
+        if i < len(waypoints) - 1:
+            time.sleep(step_delay)
+    print('[traj] Done.')
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -484,20 +585,30 @@ def main():
 
     # Status overlay text
     send_label_id = p.addUserDebugText(
-        'IK SEND: OFF  (X=toggle | 1/2=R hand open/close | 3/4=L hand open/close | r=save | t=print | q=quit)',
+        'IK SEND: OFF  (X=toggle | 1/2=R hand | 3/4=L hand | r=save | 9=rec | 0=traj | 8=exec | t=print | q=quit)',
+
         textPosition=[0, 0, 1.3],
         textColorRGB=[0.9, 0.4, 0.1],
         textSize=1.0,
     )
 
-    ik_sending = False   # toggled by 'x'
+    ik_sending = False       # toggled by 'x'
+    trajectory_waypoints: list = []   # accumulated by '9'
+    _input_active = {'value': False}  # guard against concurrent input prompts
 
-    print('\nControls: X=toggle IK send  |  1/2=R hand open/close  |  3/4=L hand open/close  |  r=save  |  t=print  |  q=quit')
+    print('\nControls: X=toggle IK send  |  1/2=R hand  |  3/4=L hand  |  r=save  |  9=rec wp  |  0=save traj  |  8=exec traj  |  t=print  |  q=quit')
     print('⚠  IK sending starts OFF — press X to enable after ensuring robot is safe.')
 
     try:
         while True:
             keys = p.getKeyboardEvents()
+
+            # While an input() prompt is active, skip all key commands so
+            # stray keypresses are not mis-interpreted as robot commands.
+            if _input_active['value']:
+                p.stepSimulation()
+                time.sleep(0.02)
+                continue
 
             # 'q' — quit
             if ord('q') in keys and keys[ord('q')] & p.KEY_WAS_TRIGGERED:
@@ -510,7 +621,8 @@ def main():
                 state_str = 'ON  ⚡' if ik_sending else 'OFF'
                 color = [0.2, 0.9, 0.2] if ik_sending else [0.9, 0.4, 0.1]
                 p.addUserDebugText(
-                    f'IK SEND: {state_str}  (X=toggle | 1/2=R hand open/close | 3/4=L hand open/close | r=save | t=print | q=quit)',
+                    f'IK SEND: {state_str}  (X=toggle | 1/2=R hand | 3/4=L hand | r=save | 9=rec | 0=traj | 8=exec | t=print | q=quit)',
+
                     textPosition=[0, 0, 1.3],
                     textColorRGB=color, textSize=1.0,
                     replaceItemUniqueId=send_label_id,
@@ -568,6 +680,76 @@ def main():
                 ee_euler_now = list(p.getEulerFromQuaternion(ls_now[1]))
                 print(f'[t] Real EE pos:   {[round(v,4) for v in ee_now]}')
                 print(f'[t] Real EE euler: {[round(v,4) for v in ee_euler_now]}')
+
+            # '9' — record current pose as trajectory waypoint
+            if ord('9') in keys and keys[ord('9')] & p.KEY_WAS_TRIGGERED:
+                wp = _get_current_pose_payload(robot_id, ik_joint_idxs, ik_joint_names)
+                trajectory_waypoints.append(wp)
+                print(f'[9] Waypoint {len(trajectory_waypoints)} recorded to trajectory buffer.')
+
+            # '0' — save trajectory buffer to trajectories.csv
+            if ord('0') in keys and keys[ord('0')] & p.KEY_WAS_TRIGGERED:
+                if not trajectory_waypoints:
+                    print('[0] Trajectory buffer is empty — press 9 to record waypoints first.')
+                elif _input_active['value']:
+                    print('[0] Another input prompt is already active.')
+                else:
+                    wps_snapshot = list(trajectory_waypoints)
+                    def _save_traj_thread(wps=wps_snapshot):
+                        _input_active['value'] = True
+                        try:
+                            traj_name = input('[0] Enter trajectory name: ').strip()
+                            if traj_name:
+                                traj_file = os.path.join(examples_dir, 'trajectories.csv')
+                                _save_trajectory(traj_name, wps, traj_file)
+                                trajectory_waypoints.clear()
+                                print(f"[0] Trajectory '{traj_name}' saved "
+                                      f'({len(wps)} waypoints) → {traj_file}')
+                            else:
+                                print('[0] Empty name — trajectory not saved.')
+                        finally:
+                            _input_active['value'] = False
+                    threading.Thread(target=_save_traj_thread, daemon=True).start()
+
+            # '8' — list and execute a saved trajectory
+            if ord('8') in keys and keys[ord('8')] & p.KEY_WAS_TRIGGERED:
+                if _input_active['value']:
+                    print('[8] Another input prompt is already active.')
+                else:
+                    def _exec_traj_thread():
+                        _input_active['value'] = True
+                        try:
+                            traj_file = os.path.join(examples_dir, 'trajectories.csv')
+                            trajs = _load_trajectories(traj_file)
+                            if not trajs:
+                                print('[8] No trajectories found in trajectories.csv')
+                                return
+                            names = sorted(trajs.keys())
+                            print('[8] Available trajectories:')
+                            for i, n in enumerate(names):
+                                print(f'    {i + 1}. {n}  ({len(trajs[n])} waypoints)')
+                            sel = input('[8] Select trajectory (number or name): ').strip()
+                            chosen = None
+                            try:
+                                idx = int(sel) - 1
+                                if 0 <= idx < len(names):
+                                    chosen = names[idx]
+                            except ValueError:
+                                if sel in trajs:
+                                    chosen = sel
+                            if chosen is None:
+                                print('[8] Invalid selection.')
+                                return
+                            print(f"[8] Starting trajectory '{chosen}' …")
+                        finally:
+                            _input_active['value'] = False
+                        if chosen:
+                            threading.Thread(
+                                target=_execute_trajectory,
+                                args=(trajs[chosen], ros_node),
+                                daemon=True,
+                            ).start()
+                    threading.Thread(target=_exec_traj_thread, daemon=True).start()
 
             # ── Mirror real robot → PyBullet ────────────────────────────────
             real_pos = ros_node.get_positions()

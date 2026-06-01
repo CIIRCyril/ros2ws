@@ -222,7 +222,7 @@ def main():
     p.setGravity(0, 0, -9.81)
 
     # Load only ground plane (no table/workspace)
-    p.loadURDF("plane.urdf", basePosition=[0, 0, -0.82])
+    p.loadURDF("plane.urdf", basePosition=[0, 0, -1])
     print("Loaded ground plane: plane.urdf at z=-0.82")
 
     # Load URDF

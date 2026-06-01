@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-visualize_robot_ik.py — IK control of S2full robot in PyBullet.
+visualize_robot_ik.py — Dual-arm + left-leg IK control of S2full robot in PyBullet.
 
-Loads S2full.urdf and drives all non-fixed joints via the PyBullet IK solver.
-Six debug sliders control the target end-effector pose (X, Y, Z, Roll, Pitch, Yaw).
-A coloured box tracks the target; colour indicates IK accuracy:
+Loads S2full.urdf and drives joints via the PyBullet IK solver.
+Eighteen debug sliders control the target end-effector poses for the RIGHT arm
+(prefixed "R "), LEFT arm (prefixed "L "), and LEFT LEG (prefixed "LL ").
+Each limb gets a coloured target box; colour indicates IK accuracy:
   Green — position and orientation both within threshold
   Blue  — one of the two within threshold
   Red   — both outside threshold
@@ -14,7 +15,7 @@ Keyboard controls (click the PyBullet window first):
     c     — close gripper fingers (from init_pos.json)
     r     — save current IK pose to saved_positions.csv
     x     — send right arm + waist positions directly to the real robot (ROS2)
-    t     — print current joint values and end-effector pose to console
+    t     — print current joint values and both end-effector poses to console
     q     — quit
 """
 
@@ -298,7 +299,7 @@ def main():
     p.setGravity(0, 0, -9.81)
 
     # Load ground plane
-    p.loadURDF('plane.urdf', basePosition=[0, 0, -1.0])
+    p.loadURDF('plane.urdf', basePosition=[0, 0, -1.1])
     print('Loaded ground plane at z=-1.0')
 
     # Load robot
@@ -348,9 +349,33 @@ def main():
         print('Warning: no link named "endeffector" found; using last joint')
         end_effector_index = num_joints - 1
 
+    # Find left end-effector link
+    ee_index_l = -1
+    for joint_idx in range(num_joints):
+        link_name = p.getJointInfo(robot_id, joint_idx)[12].decode('utf-8')
+        if link_name == 'endeffectol':
+            ee_index_l = joint_idx
+            print(f'Left end effector at joint index: {ee_index_l}')
+            break
+    if ee_index_l == -1:
+        print('Warning: "endeffectol" link not found; left IK disabled')
+
+    # Find left leg end-effector link
+    ee_index_ll = -1
+    for joint_idx in range(num_joints):
+        link_name = p.getJointInfo(robot_id, joint_idx)[12].decode('utf-8')
+        if link_name == 'endefectoll':
+            ee_index_ll = joint_idx
+            print(f'Left leg end effector at joint index: {ee_index_ll}')
+            break
+    if ee_index_ll == -1:
+        print('Warning: "endefectoll" link not found; left leg IK disabled')
+
     # Get controllable joints for IK (exclude gripper — driven separately)
     joint_idxs, joint_names = get_controllable_joints(robot_id, num_joints)
-    ik_joint_idxs = [ji for ji in joint_idxs if ji not in gjoint_idxs]
+    gjoint_set    = set(gjoint_idxs)
+    ik_joint_idxs  = [ji for ji in joint_idxs if ji not in gjoint_set]
+    ik_joint_names = [joint_names[joint_idxs.index(ji)] for ji in ik_joint_idxs]
 
     # Initial end-effector pose — use stored values if available
     link_state = p.getLinkState(robot_id, end_effector_index)
@@ -358,8 +383,52 @@ def main():
     ee_initial_pos   = stored.get('ee_pos',  list(link_state[0]))
     stored_ori = stored.get('ee_ori')
     ee_initial_euler = stored_ori if stored_ori else list(p.getEulerFromQuaternion(link_state[1]))
-    print(f'Initial EE pos:   {ee_initial_pos}')
-    print(f'Initial EE euler: {ee_initial_euler}')
+    print(f'Initial R EE pos:   {ee_initial_pos}')
+    print(f'Initial R EE euler: {ee_initial_euler}')
+
+    # Left EE initial pose
+    if ee_index_l != -1:
+        link_state_l      = p.getLinkState(robot_id, ee_index_l)
+        ee_initial_pos_l   = list(link_state_l[0])
+        ee_initial_euler_l = list(p.getEulerFromQuaternion(link_state_l[1]))
+    else:
+        ee_initial_pos_l   = [0.0, 0.2, 0.3]
+        ee_initial_euler_l = [0.0, 0.0, 0.0]
+    print(f'Initial L EE pos:   {ee_initial_pos_l}')
+    print(f'Initial L EE euler: {ee_initial_euler_l}')
+
+    # Left leg EE initial pose
+    if ee_index_ll != -1:
+        link_state_ll      = p.getLinkState(robot_id, ee_index_ll)
+        ee_initial_pos_ll   = list(link_state_ll[0])
+        ee_initial_euler_ll = list(p.getEulerFromQuaternion(link_state_ll[1]))
+    else:
+        ee_initial_pos_ll   = [0.0, 0.15, -0.8]
+        ee_initial_euler_ll = [0.0, 0.0, 0.0]
+    print(f'Initial LL EE pos:   {ee_initial_pos_ll}')
+    print(f'Initial LL EE euler: {ee_initial_euler_ll}')
+
+    # Precompute which IK-solution indices map to each limb (for selective apply)
+    _RIGHT_LIMBS    = {'right_arm_pos', 'waist_pos'}
+    _LEFT_LIMBS     = {'left_arm_pos'}
+    _LEFT_LEG_LIMBS = {'left_leg_pos'}
+    right_sol_idxs:    list[int] = []
+    right_jt_idxs:     list[int] = []
+    left_sol_idxs:     list[int] = []
+    left_jt_idxs:      list[int] = []
+    left_leg_sol_idxs: list[int] = []
+    left_leg_jt_idxs:  list[int] = []
+    for _si, (_ji, _jn) in enumerate(zip(ik_joint_idxs, ik_joint_names)):
+        _limb = URDF_TO_GUI.get(_jn, (None,))[0]
+        if _limb in _RIGHT_LIMBS:
+            right_sol_idxs.append(_si)
+            right_jt_idxs.append(_ji)
+        elif _limb in _LEFT_LIMBS:
+            left_sol_idxs.append(_si)
+            left_jt_idxs.append(_ji)
+        elif _limb in _LEFT_LEG_LIMBS:
+            left_leg_sol_idxs.append(_si)
+            left_leg_jt_idxs.append(_ji)
 
     # Visual target box
     box_size = 0.02
@@ -376,17 +445,61 @@ def main():
         baseOrientation=p.getQuaternionFromEuler(ee_initial_euler),
     )
 
+    # Visual target box — LEFT arm (cyan)
+    box_vis_l = p.createVisualShape(
+        p.GEOM_BOX,
+        halfExtents=[box_size / 2] * 3,
+        rgbaColor=[0, 0.8, 1, 0.5],
+    )
+    box_id_l = p.createMultiBody(
+        baseMass=0,
+        baseCollisionShapeIndex=-1,
+        baseVisualShapeIndex=box_vis_l,
+        basePosition=ee_initial_pos_l,
+        baseOrientation=p.getQuaternionFromEuler(ee_initial_euler_l),
+    )
+
+    # Visual target box — LEFT LEG (orange)
+    box_vis_ll = p.createVisualShape(
+        p.GEOM_BOX,
+        halfExtents=[box_size / 2] * 3,
+        rgbaColor=[1, 0.5, 0, 0.5],
+    )
+    box_id_ll = p.createMultiBody(
+        baseMass=0,
+        baseCollisionShapeIndex=-1,
+        baseVisualShapeIndex=box_vis_ll,
+        basePosition=ee_initial_pos_ll,
+        baseOrientation=p.getQuaternionFromEuler(ee_initial_euler_ll),
+    )
+
     # IK accuracy thresholds
     POSITION_THRESHOLD    = 0.05   # metres
     ORIENTATION_THRESHOLD = 0.1    # radians
 
-    # Debug sliders for EE target pose
-    x_sl     = p.addUserDebugParameter('Target X',     -1.0,    1.0,  ee_initial_pos[0])
-    y_sl     = p.addUserDebugParameter('Target Y',     -1.0,    1.0,  ee_initial_pos[1])
-    z_sl     = p.addUserDebugParameter('Target Z',     -1.0,    1.0,  ee_initial_pos[2])
-    roll_sl  = p.addUserDebugParameter('Target Roll',  -np.pi, np.pi, ee_initial_euler[0])
-    pitch_sl = p.addUserDebugParameter('Target Pitch', -np.pi, np.pi, ee_initial_euler[1])
-    yaw_sl   = p.addUserDebugParameter('Target Yaw',   -np.pi, np.pi, ee_initial_euler[2])
+    # Debug sliders for RIGHT EE target pose
+    x_sl     = p.addUserDebugParameter('R Target X',     -1.0,    1.0,  ee_initial_pos[0])
+    y_sl     = p.addUserDebugParameter('R Target Y',     -1.0,    1.0,  ee_initial_pos[1])
+    z_sl     = p.addUserDebugParameter('R Target Z',     -1.0,    1.0,  ee_initial_pos[2])
+    roll_sl  = p.addUserDebugParameter('R Target Roll',  -np.pi, np.pi, ee_initial_euler[0])
+    pitch_sl = p.addUserDebugParameter('R Target Pitch', -np.pi, np.pi, ee_initial_euler[1])
+    yaw_sl   = p.addUserDebugParameter('R Target Yaw',   -np.pi, np.pi, ee_initial_euler[2])
+
+    # Debug sliders for LEFT EE target pose
+    lx_sl     = p.addUserDebugParameter('L Target X',     -1.0,    1.0,  ee_initial_pos_l[0])
+    ly_sl     = p.addUserDebugParameter('L Target Y',     -1.0,    1.0,  ee_initial_pos_l[1])
+    lz_sl     = p.addUserDebugParameter('L Target Z',     -1.0,    1.0,  ee_initial_pos_l[2])
+    lroll_sl  = p.addUserDebugParameter('L Target Roll',  -np.pi, np.pi, ee_initial_euler_l[0])
+    lpitch_sl = p.addUserDebugParameter('L Target Pitch', -np.pi, np.pi, ee_initial_euler_l[1])
+    lyaw_sl   = p.addUserDebugParameter('L Target Yaw',   -np.pi, np.pi, ee_initial_euler_l[2])
+
+    # Debug sliders for LEFT LEG EE target pose
+    llx_sl     = p.addUserDebugParameter('LL Target X',     -0.5,   0.5,  ee_initial_pos_ll[0])
+    lly_sl     = p.addUserDebugParameter('LL Target Y',     -0.5,   0.5,  ee_initial_pos_ll[1])
+    llz_sl     = p.addUserDebugParameter('LL Target Z',     -1.2,   0.0,  ee_initial_pos_ll[2])
+    llroll_sl  = p.addUserDebugParameter('LL Target Roll',  -np.pi, np.pi, ee_initial_euler_ll[0])
+    llpitch_sl = p.addUserDebugParameter('LL Target Pitch', -np.pi, np.pi, ee_initial_euler_ll[1])
+    llyaw_sl   = p.addUserDebugParameter('LL Target Yaw',   -np.pi, np.pi, ee_initial_euler_ll[2])
 
     p.setRealTimeSimulation(1)
     p.resetDebugVisualizerCamera(
@@ -453,7 +566,7 @@ def main():
                 print(f"Saved IK pose '{pos_name}' to {positions_file}")
                 print('Load and execute it via motion_control_GUI.py → Positions tab')
 
-            # 't' — print current joint values and EE pose
+            # 't' — print current joint values and EE poses
             if ord('t') in keys and keys[ord('t')] & p.KEY_WAS_TRIGGERED:
                 joint_states = [
                     p.getJointState(robot_id, ji)[0] for ji in joint_idxs
@@ -462,15 +575,27 @@ def main():
                 ls = p.getLinkState(robot_id, end_effector_index)
                 ee_pos   = list(ls[0])
                 ee_euler = list(p.getEulerFromQuaternion(ls[1]))
-                print(f'EE pos:   {ee_pos}')
-                print(f'EE euler: {ee_euler}')
+                print(f'R EE pos:   {[round(v,4) for v in ee_pos]}')
+                print(f'R EE euler: {[round(v,4) for v in ee_euler]}')
+                if ee_index_l != -1:
+                    ls_l = p.getLinkState(robot_id, ee_index_l)
+                    ee_pos_l   = list(ls_l[0])
+                    ee_euler_l = list(p.getEulerFromQuaternion(ls_l[1]))
+                    print(f'L EE pos:   {[round(v,4) for v in ee_pos_l]}')
+                    print(f'L EE euler: {[round(v,4) for v in ee_euler_l]}')
+                if ee_index_ll != -1:
+                    ls_ll = p.getLinkState(robot_id, ee_index_ll)
+                    ee_pos_ll   = list(ls_ll[0])
+                    ee_euler_ll = list(p.getEulerFromQuaternion(ls_ll[1]))
+                    print(f'LL EE pos:   {[round(v,4) for v in ee_pos_ll]}')
+                    print(f'LL EE euler: {[round(v,4) for v in ee_euler_ll]}')
 
             # 'q' — quit
             if ord('q') in keys and keys[ord('q')] & p.KEY_WAS_TRIGGERED:
                 print('Quitting.')
                 break
 
-            # Read slider targets
+            # Read RIGHT slider targets
             target_pos = [
                 p.readUserDebugParameter(x_sl),
                 p.readUserDebugParameter(y_sl),
@@ -483,16 +608,73 @@ def main():
             ]
             target_quat = p.getQuaternionFromEuler(target_euler)
 
-            # Update target box
-            p.resetBasePositionAndOrientation(box_id, target_pos, target_quat)
+            # Read LEFT slider targets
+            target_pos_l = [
+                p.readUserDebugParameter(lx_sl),
+                p.readUserDebugParameter(ly_sl),
+                p.readUserDebugParameter(lz_sl),
+            ]
+            target_euler_l = [
+                p.readUserDebugParameter(lroll_sl),
+                p.readUserDebugParameter(lpitch_sl),
+                p.readUserDebugParameter(lyaw_sl),
+            ]
+            target_quat_l = p.getQuaternionFromEuler(target_euler_l)
 
-            # Solve IK and apply (body joints only, not gripper)
+            # Read LEFT LEG slider targets
+            target_pos_ll = [
+                p.readUserDebugParameter(llx_sl),
+                p.readUserDebugParameter(lly_sl),
+                p.readUserDebugParameter(llz_sl),
+            ]
+            target_euler_ll = [
+                p.readUserDebugParameter(llroll_sl),
+                p.readUserDebugParameter(llpitch_sl),
+                p.readUserDebugParameter(llyaw_sl),
+            ]
+            target_quat_ll = p.getQuaternionFromEuler(target_euler_ll)
+
+            # Update target boxes
+            p.resetBasePositionAndOrientation(box_id,    target_pos,    target_quat)
+            p.resetBasePositionAndOrientation(box_id_l,  target_pos_l,  target_quat_l)
+            p.resetBasePositionAndOrientation(box_id_ll, target_pos_ll, target_quat_ll)
+
+            # Solve IK — RIGHT arm, apply selectively to right arm + waist joints
             ik_solution = p.calculateInverseKinematics(
                 robot_id, end_effector_index, target_pos, target_quat
             )
-            apply_ik_solution(robot_id, ik_solution, ik_joint_idxs)
+            for sol_idx, ji in zip(right_sol_idxs, right_jt_idxs):
+                p.setJointMotorControl2(
+                    bodyIndex=robot_id, jointIndex=ji,
+                    controlMode=p.POSITION_CONTROL,
+                    targetPosition=ik_solution[sol_idx], force=500,
+                )
 
-            # Colour the box based on IK accuracy
+            # Solve IK — LEFT arm, apply selectively to left arm joints
+            if ee_index_l != -1:
+                ik_solution_l = p.calculateInverseKinematics(
+                    robot_id, ee_index_l, target_pos_l, target_quat_l
+                )
+                for sol_idx, ji in zip(left_sol_idxs, left_jt_idxs):
+                    p.setJointMotorControl2(
+                        bodyIndex=robot_id, jointIndex=ji,
+                        controlMode=p.POSITION_CONTROL,
+                        targetPosition=ik_solution_l[sol_idx], force=500,
+                    )
+
+            # Solve IK — LEFT LEG, apply selectively to left leg joints
+            if ee_index_ll != -1:
+                ik_solution_ll = p.calculateInverseKinematics(
+                    robot_id, ee_index_ll, target_pos_ll, target_quat_ll
+                )
+                for sol_idx, ji in zip(left_leg_sol_idxs, left_leg_jt_idxs):
+                    p.setJointMotorControl2(
+                        bodyIndex=robot_id, jointIndex=ji,
+                        controlMode=p.POSITION_CONTROL,
+                        targetPosition=ik_solution_ll[sol_idx], force=500,
+                    )
+
+            # Colour RIGHT box based on IK accuracy
             ls = p.getLinkState(robot_id, end_effector_index)
             ee_pos   = np.array(ls[0])
             ee_euler = np.array(p.getEulerFromQuaternion(ls[1]))
@@ -506,6 +688,36 @@ def main():
             else:
                 colour = [1, 0, 0, 0.5]   # red
             p.changeVisualShape(box_id, -1, rgbaColor=colour)
+
+            # Colour LEFT arm box based on IK accuracy
+            if ee_index_l != -1:
+                ls_l = p.getLinkState(robot_id, ee_index_l)
+                ee_pos_l   = np.array(ls_l[0])
+                ee_euler_l = np.array(p.getEulerFromQuaternion(ls_l[1]))
+                pos_ok_l = np.linalg.norm(ee_pos_l - np.array(target_pos_l)) < POSITION_THRESHOLD
+                ori_ok_l = np.linalg.norm(ee_euler_l - np.array(target_euler_l)) < ORIENTATION_THRESHOLD
+                if pos_ok_l and ori_ok_l:
+                    colour_l = [0, 1, 0, 0.5]      # green
+                elif pos_ok_l or ori_ok_l:
+                    colour_l = [0, 0.5, 1, 0.5]    # blue
+                else:
+                    colour_l = [0, 0.8, 1, 0.5]    # cyan (default)
+                p.changeVisualShape(box_id_l, -1, rgbaColor=colour_l)
+
+            # Colour LEFT LEG box based on IK accuracy
+            if ee_index_ll != -1:
+                ls_ll = p.getLinkState(robot_id, ee_index_ll)
+                ee_pos_ll   = np.array(ls_ll[0])
+                ee_euler_ll = np.array(p.getEulerFromQuaternion(ls_ll[1]))
+                pos_ok_ll = np.linalg.norm(ee_pos_ll - np.array(target_pos_ll)) < POSITION_THRESHOLD
+                ori_ok_ll = np.linalg.norm(ee_euler_ll - np.array(target_euler_ll)) < ORIENTATION_THRESHOLD
+                if pos_ok_ll and ori_ok_ll:
+                    colour_ll = [0, 1, 0, 0.5]       # green
+                elif pos_ok_ll or ori_ok_ll:
+                    colour_ll = [1, 0.8, 0, 0.5]     # yellow
+                else:
+                    colour_ll = [1, 0.5, 0, 0.5]     # orange (default)
+                p.changeVisualShape(box_id_ll, -1, rgbaColor=colour_ll)
 
             time.sleep(0.01)
 

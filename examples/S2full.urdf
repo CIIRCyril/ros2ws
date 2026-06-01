@@ -196,6 +196,26 @@
     <axis xyz="1 0 0"/>
     <limit effort="55.0" lower="-0.5235987755982988" upper="0.5235987755982988" velocity="14.137166941154069"/>
   </joint>
+   <link name="endeffectoll">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="endeffectoll_joint" type="fixed">
+    <parent link="ankle_roll_l_link"/>
+    <child link="endeffectoll"/>
+    <origin rpy="1.57 -1.57 -1.57" xyz="0.0 0.0 -0.1"/>
+  </joint>
   <link name="hip_roll_r_link">
     <inertial>
       <origin rpy="0 0 0" xyz="-0.001848 -0.055849 -0.036017"/>
@@ -370,6 +390,26 @@
     <axis xyz="1 0 0"/>
     <limit effort="55.0" lower="-0.5235987755982988" upper="0.5235987755982988" velocity="14.137166941154069"/>
   </joint>
+     <link name="endeffectorl">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="endeffectorl_joint" type="fixed">
+    <parent link="ankle_roll_r_link"/>
+    <child link="endeffectorl"/>
+    <origin rpy="1.57 -1.57 -1.57" xyz="0.0 0.0 -0.1"/>
+  </joint>
   <link name="body_yaw_link">
     <inertial>
       <origin rpy="0 0 0" xyz="-0.000568 0.00056 0.231488"/>
@@ -513,6 +553,26 @@
     <parent link="head_roll_link"/>
     <child link="camera_head_link"/>
     <axis xyz="0 0 0"/>
+  </joint>
+     <link name="endeffectoh">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="1 1 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="endeffectoh_joint" type="fixed">
+    <parent link="head_roll_link"/>
+    <child link="endeffectoh"/>
+    <origin rpy="1.57 -1.57 -1.57" xyz="0.2 0.0 -0.1"/>
   </joint>
   <link name="shoulder_pitch_l_link">
     <inertial>
